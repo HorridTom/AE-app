@@ -1,11 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
 
 library(shiny)
 library(tidyverse)
@@ -18,26 +10,26 @@ source("scrape_AE_data_Eng.R")
 source("perf_4h_analysis.R")
 
 
-# Define UI for application that draws a histogram
+# Define UI
 ui <- fluidPage(
    
    # Application title
    titlePanel("NHS England Trusts 4hr Performance Over Time"),
    
-   # Sidebar with a slider input for number of bins 
+ 
    sidebarLayout(
       sidebarPanel(
         uiOutput("orgControl")
       ),
       
-      # Show a plot of the generated distribution
+      # Show a plot
       mainPanel(
          plotOutput("edPerfPlot")
       )
    )
 )
 
-# Define server logic required to draw a histogram
+# Define server logic
 server <- function(input, output) {
 
   update_data = TRUE
