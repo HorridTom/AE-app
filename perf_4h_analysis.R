@@ -181,7 +181,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
     pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
   }
   # chart y limit
-  ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE),max_lower_y_scale)
+  ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
   
   col1    <- rgb(000, 000, 000, maxColorValue = 255)
   col2    <- rgb(241, 088, 084, maxColorValue = 255)
@@ -189,11 +189,15 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   col4    <- 'white'
   col5    <-  rgb(096, 189, 104, maxColorValue = 255)
   cols    <- c('col1' = col1, 'col2' = col2, 'col3' = col3, 'col4' = col4)
+  
+  cutoff <- data.frame(yintercept=95, cutoff=factor(95))
 
   if(plot.chart == TRUE) {pct + geom_line(aes_string(x = 'x', y = 'lcl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
     geom_line(aes_string(x = 'x', y = 'ucl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
     geom_line(aes_string(x = 'x', y = 'cl', group = 'breaks'), colour = '#000000', linetype = 1) +
     geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
+    geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1)  +
+    annotate("text", ed.dt, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
     geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
     scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
     ggtitle(cht_title, subtitle = pr_name) +
