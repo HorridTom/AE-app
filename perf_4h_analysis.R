@@ -9,7 +9,7 @@ make_perf_series <- function(df, prov_codes = c("RBZ"), perf_only = FALSE,
   
   # TODO: This is a horrible hack - use tidyverse throughout to avoid?
   newdatecol <- df[, date_col]
-  if (class(newdatecol) == "Date") {
+  if ("Date" %in% class(newdatecol)) {
     df$datecol <- newdatecol
   } else {
     df$datecol <- newdatecol[[1]]
@@ -151,11 +151,11 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   if (is_null(pr_name)) {
     pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
   }
-  #cht_title = paste("Percentage ED attendances with time in department < 4h",pr_name,sep="\n")
+  #cht_title = paste("Percentage A&E attendances with time in department < 4h",pr_name,sep="\n")
   if (adm_only) {
-    cht_title = paste("Percentage admissions through ED \n with time in department < 4h",sep="")
+    cht_title = paste("Percentage admissions through A&E/nwith time in department < 4h",sep="")
   } else {
-    cht_title = paste("Percentage ED attendances \n with time in department < 4h",sep="")
+    cht_title = paste("Percentage A&E attendances/nwith time in department < 4h",sep="")
   }
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
@@ -163,20 +163,23 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   
   st.dt <- as.Date(start.date)
   ed.dt <- as.Date(end.date)
-  br.dt <- as.Date(brk.date)
   
   # restrict to the period specified
   df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
   
-  # locate break row
-  v <- df[,date.col]
-  br.row <- which(v == max(v[v < br.dt]))
-  
   # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
-  pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
-  
+  if (is.null(brk.date)) {
+    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
+  } else {
+    br.dt <- as.Date(brk.date)
+    # locate break row
+    v <- df[,date.col]
+    br.row <- which(v == max(v[v < br.dt]))
+    
+    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
+  }
   # chart y limit
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE),max_lower_y_scale)
   
@@ -193,11 +196,12 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
     geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
     geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
     scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
-    labs(title = cht_title, x= x_title, y="Percentage", subtitle = pr_name) +
+    ggtitle(cht_title, subtitle = pr_name) +
+    labs(x= x_title, y="Percentage") +
     ylim(ylimlow,100) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
           axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
-          plot.title = element_text(size = 20, hjust = 0.5),
+          plot.title = element_text(size = 20, hjust = 0),
           plot.subtitle = element_text(size = 16, face = "italic"),
           axis.line = element_line(colour = "grey60"))
   } else {df}

@@ -61,7 +61,7 @@ server <- function(input, output) {
   
   perf.start.date <- "2015-06-01"
   perf.end.date <- "2018-01-01"
-  perf.brk.date <- "2016-07-01"
+  perf.brk.date <- NULL
   
   output$orgControl <- renderUI({
     selectInput("trust", "Choose Trust", orgNames)
