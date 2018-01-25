@@ -127,16 +127,6 @@ perf_weekly_series <- function(perf_df) {
 }
 
 
-write_for_algorithm <- function(df, ...) {
-  
-  providerCodes <- unique(df$Prov_Code)
-  for (prov in providerCodes) {
-    df_out <- make_perf_series(df, prov_codes = prov, perf_only = TRUE, ...)
-    write.table(df_out, file = paste("data-out/",prov,"_perf.csv",sep=""),row.names = FALSE, col.names = FALSE, sep=",")
-  }
-  
-}
-
 plot_performance_qcc <- function(df) {
 
   library(qcc)
@@ -163,9 +153,9 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   }
   #cht_title = paste("Percentage ED attendances with time in department < 4h",pr_name,sep="\n")
   if (adm_only) {
-    cht_title = paste("Percentage admissions through ED \n with time in department < 4h. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
+    cht_title = paste("Percentage admissions through ED \n with time in department < 4h",sep="")
   } else {
-    cht_title = paste("Percentage ED attendances \n with time in department < 4h. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
+    cht_title = paste("Percentage ED attendances \n with time in department < 4h",sep="")
   }
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
@@ -185,7 +175,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
-  pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = TRUE)
+  pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
   
   # chart y limit
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE),max_lower_y_scale)
@@ -204,7 +194,12 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
     geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
     scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
     labs(title = cht_title, x= x_title, y="Percentage", subtitle = pr_name) +
-    ylim(ylimlow,100) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.75), plot.title = element_text(hjust = 0.5), axis.line = element_line(colour = "grey60"))
+    ylim(ylimlow,100) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
+          axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
+          plot.title = element_text(size = 20, hjust = 0.5),
+          plot.subtitle = element_text(size = 16, face = "italic"),
+          axis.line = element_line(colour = "grey60"))
   } else {df}
     
 }
@@ -246,11 +241,11 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   pp <- ggplot(data = df, aes(x = datecol, y = Total))
   
   pp + geom_path() + geom_point() + ylim(0,ylimhigh) +
+  scale_x_date(labels = date_format("%Y-%m"),breaks = date_breaks("3 months")) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
-        axis.line=element_line(colour = "grey75"), axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.75)) +
+        axis.line=element_line(colour = "grey75"), axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.75), plot.title = element_text(hjust = 0.5)) +
   labs(title = cht_title, x=x_title, y=y_axis_lab) +
-  geom_vline(xintercept = as.numeric(br.dt), colour="grey60") +
-  scale_x_date(labels = date_format("%Y-%m"),breaks = date_breaks("3 months")) + theme(axis.text.x = element_text(angle=45), plot.title = element_text(hjust = 0.5))
+  geom_vline(xintercept = as.numeric(br.dt), colour="grey60")
   
 }
 
