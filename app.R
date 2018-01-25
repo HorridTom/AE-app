@@ -19,24 +19,32 @@ assign("sitrep_perf", sitrep_perf_df, envir = .GlobalEnv)
 # Define UI
 ui <- fluidPage(
    
+   # Logo
+   img(src = "CLAHRC-logo.png", height = 60, width = 200),
+  
    # Application title
    titlePanel("NHS England Trusts 4hr Performance Over Time"),
-   img(src = "CLAHRC-logo.png", height = 60, width = 200),
    
    sidebarLayout(
       sidebarPanel(
         p("This application provides statistical process control analysis of
-          accident and emergency data for English NHS Trusts. All the data used
+          accident and emergency data for English NHS Trusts."),
+          uiOutput("orgControl"),
+          HTML("<br/>"),
+          HTML("<br/>"),
+          p("The analysis method used is the p-prime chart, more information
+          is available here:"),
+          a("p-prime charts publicarion", href="10.1136/qshc.2006.017830"),
+          HTML("<br/>"),
+          HTML("<br/>"),
+          p("All the data used
           is publicly available from the NHS England website:"),
-        a("A&E waiting times and activity", href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/"),
-        HTML("<br/>"),
-        HTML("<br/>"),
-        uiOutput("orgControl")
+          a("A&E waiting times and activity", href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/")
       ),
       
       # Show a plot
       mainPanel(
-         plotOutput("edPerfPlot")
+        plotOutput("edPerfPlot")
       )
       
    )
