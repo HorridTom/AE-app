@@ -34,7 +34,7 @@ ui <- fluidPage(
           HTML("<br/>"),
           p("The analysis method used is the p-prime chart, more information
           is available here:"),
-          a("p-prime charts publicarion", href="10.1136/qshc.2006.017830"),
+          a("p-prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
           HTML("<br/>"),
           HTML("<br/>"),
           p("All the data used
@@ -60,7 +60,7 @@ server <- function(input, output) {
   orgNames <- provLookup$Prov_Name
   
   perf.start.date <- "2015-06-01"
-  perf.end.date <- "2018-01-01"
+  perf.end.date <- lubridate::today()
   perf.brk.date <- NULL
   
   output$orgControl <- renderUI({
