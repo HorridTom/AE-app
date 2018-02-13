@@ -6,9 +6,11 @@ getAE_data <- function(update_data = TRUE) {
   }
   rawDataList <- load_AE_files()
   
+  rawDataList <- lapply(rawDataList, delete_extra_columns)
+  
   if(!all(unlist(lapply(rawDataList, check_format)))) {
     stop('There is a problem with the format of the data in one or more of the files')
-  } 
+  }
   
   neatDataList <- lapply(rawDataList, tidy_AE_data)
   
@@ -139,7 +141,7 @@ check_format <- function(raw_data, verbose = FALSE) {
   format_status[2] <- nrow(raw_data %>% filter(X__2 == "Region")) == 1
   format_status[3] <- nrow(raw_data %>% filter(X__3 == "Name")) == 1
   format_status[4] <- nrow(raw_data %>% filter(X__4 == "A&E attendances")) == 1
-  format_status[5] <- nrow(raw_data %>% filter(grepl("A&E attendances > 4 hours from arrival to admission",X__8))) == 1
+  format_status[5] <- nrow(raw_data %>% filter(grepl("A&E attendances > 4 hours from arrival to admission",X__8)|grepl("A&E attendances greater than 4 hours from arrival to admission",X__8))) == 1
   format_status[6] <- nrow(raw_data %>% filter(X__14 == "Emergency Admissions")) == 1
   
   
@@ -200,5 +202,14 @@ make_p4h_from_sitreps <- function(AE_data) {
   # Convert to date
   df$Month_Start <- as.Date(df$Month_Start)
   
+  df
+}
+
+
+delete_extra_columns <- function(df) {
+  format_type_x <- nrow(df %>% filter(grepl("A&E attendances less than 4 hours from arrival to admission",X__8))) == 1
+  if(!format_type_x) return(df)
+  df <- df %>% select(-c(X__8,X__9,X__10,X__11))
+  colnames(df) <- paste('X__',c(1:ncol(df)),sep='')
   df
 }
