@@ -197,7 +197,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
     geom_line(aes_string(x = 'x', y = 'cl', group = 'breaks'), colour = '#000000', linetype = 1) +
     geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
     geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1)  +
-    annotate("text", ed.dt, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
+    annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
     geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
     scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
     ggtitle(cht_title, subtitle = pr_name) +
@@ -212,7 +212,89 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
     
 }
 
+
 plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
+                             start.date = "2014-01-01", end.date = "2017-06-30",
+                             brk.date = "2016-02-01", max_lower_y_scale = 60,
+                             adm_only = FALSE, all_provs = FALSE,
+                             dept_types = c('1','2','3'), plot.chart = TRUE,
+                             pr_name = NULL, x_title = "Week Ending Sunday") {
+  # pass df as cleaned 4h perf data from the clean_4h_data function
+  
+  # if no pr_name passed, lookup full name of provider
+  # note written for just one provider
+  if (is_null(pr_name)) {
+    pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
+  }
+
+  if (adm_only) {
+    cht_title = paste("Number of admissions through A&E",sep="")
+  } else {
+    cht_title = paste("Number of A&E attendances",sep="")
+  }
+  
+  df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
+                         all_provs = all_provs, dept_types = dept_types, date_col = date.col)
+  
+  st.dt <- as.Date(start.date)
+  ed.dt <- as.Date(end.date)
+  
+  # restrict to the period specified
+  df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
+  
+  # This is a hack - find better way to modify colours of qicharts
+  # Also needs stepped limits
+  
+  if (is.null(brk.date)) {
+    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df[,date.col], data = df, chart = 'u', multiply = 1, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
+  } else {
+    br.dt <- as.Date(brk.date)
+    # locate break row
+    v <- df[,date.col]
+    br.row <- which(v == max(v[v < br.dt]))
+    
+    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df[,date.col], data = df, chart = 'u', multiply = 1, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
+  }
+  # chart y limit
+  ylimlow <- 0
+  ylimhigh <- 1000*ceiling(max(df$Total)*1.1/1000)
+  
+  col1    <- rgb(000, 000, 000, maxColorValue = 255)
+  col2    <- rgb(241, 088, 084, maxColorValue = 255)
+  col3    <- rgb(000, 000, 000, maxColorValue = 255)
+  col4    <- 'white'
+  col5    <-  rgb(096, 189, 104, maxColorValue = 255)
+  cols    <- c('col1' = col1, 'col2' = col2, 'col3' = col3, 'col4' = col4)
+  
+  cutoff <- data.frame(yintercept=95, cutoff=factor(95))
+  
+  if(plot.chart == TRUE) {pct + geom_line(aes_string(x = 'x', y = 'lcl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
+      geom_line(aes_string(x = 'x', y = 'ucl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
+      geom_line(aes_string(x = 'x', y = 'cl', group = 'breaks'), colour = '#000000', linetype = 1) +
+      geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
+      geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
+      scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
+      ggtitle(cht_title) +
+      labs(x= x_title, y="Count") +
+      ylim(ylimlow, ylimhigh) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
+            axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
+            plot.title = element_text(size = 20, hjust = 0),
+            plot.subtitle = element_text(size = 16, face = "italic"),
+            axis.line = element_line(colour = "grey60"))
+  } else {df}
+  
+}
+
+
+
+
+
+
+
+
+
+plot_volume_old <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
                         start.date = "2014-01-01", end.date = "2017-02-28",
                         brk.date = "2016-01-01", min_upper_y_scale = 3000,
                         adm_only = FALSE, all_provs = FALSE,

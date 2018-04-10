@@ -30,9 +30,11 @@ ui <- fluidPage(
         p("This application provides statistical process control analysis of
           accident and emergency data for English NHS Trusts."),
           uiOutput("orgControl"),
+          checkboxInput("adm_only_checkbox", label = "Only include admissions", value = FALSE),
+          checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE),
           HTML("<br/>"),
           HTML("<br/>"),
-          p("The analysis method used is the p-prime chart, more information
+          p("This analysis uses p-prime and u-prime charts, more information
           is available here:"),
           a("p-prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
           HTML("<br/>"),
@@ -44,7 +46,8 @@ ui <- fluidPage(
       
       # Show a plot
       mainPanel(
-        plotOutput("edPerfPlot")
+        plotOutput("edPerfPlot"),
+        plotOutput("edVolPlot")
       )
       
    )
@@ -70,9 +73,26 @@ server <- function(input, output) {
    output$edPerfPlot <- renderPlot({
      if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
-      tryCatch(plot_performance(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date, brk.date = perf.brk.date, dept_types = NA, date.col = 'Month_Start', x_title = "Month"), error=function(e) NULL)
+      dept_types <- NA
+      if(input$t1_only_checkbox) {dept_types = c('1')}
+      tryCatch(plot_performance(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+                                brk.date = perf.brk.date, dept_types = NA, date.col = 'Month_Start',
+                                x_title = "Month", adm_only = input$adm_only_checkbox),
+               error=function(e) NULL)
      }
     })
+   
+   output$edVolPlot <- renderPlot({
+     if (length(input$trust) != 0) {
+       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
+       dept_types <- NA
+       if(input$t1_only_checkbox) {dept_types = c('1')}
+       tryCatch(plot_volume(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+                            brk.date = perf.brk.date, dept_types = NA, date.col = 'Month_Start',
+                            x_title = "Month", adm_only = input$adm_only_checkbox),
+                error=function(e) NULL)
+     }
+   })
 }
 
 # Run the application 
