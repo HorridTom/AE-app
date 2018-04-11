@@ -36,7 +36,7 @@ ui <- fluidPage(
           HTML("<br/>"),
           p("This analysis uses p-prime and u-prime charts, more information
           is available here:"),
-          a("p-prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
+          a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
           HTML("<br/>"),
           HTML("<br/>"),
           p("All the data used

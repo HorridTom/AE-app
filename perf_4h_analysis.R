@@ -153,9 +153,9 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   }
   #cht_title = paste("Percentage A&E attendances with time in department < 4h",pr_name,sep="\n")
   if (adm_only) {
-    cht_title = paste("Percentage admissions through A&E/nwith time in department < 4h",sep="")
+    cht_title = paste("Percentage admissions through A&E\nwith time in department < 4h",sep="")
   } else {
-    cht_title = paste("Percentage A&E attendances/nwith time in department < 4h",sep="")
+    cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
   }
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
