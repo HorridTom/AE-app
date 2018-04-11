@@ -71,13 +71,13 @@ get_num_outside_limits <- function(df, prov_codes = c("RQM"), date.col = 'Wk_End
                                    cht.start.date = "2014-01-01", cht.end.date = "2017-06-30",
                                    cht.brk.date = "2016-02-01",
                                    period.start = "2017-01-01", period.end = "2017-06-30",
-                                   adm_only = FALSE,
+                                   adm_only = FALSE, all_provs = FALSE,
                                    dept_types = c('1','2','3'), lower.only = TRUE) {
   
   perf_cht <- plot_performance(df = df, prov_codes = prov_codes, date.col = date.col,
                                start.date = cht.start.date, end.date = cht.end.date,
-                               brk.date = cht.brk.date, adm_only = adm_only,
-                               dept_types = dept_types)
+                               brk.date = cht.brk.date, adm_only = adm_only, all_provs = all_provs,
+                               dept_types = dept_types, pr_name = 'Perf')
   
   pcls <- perf_cht$data$limits.signal
   pcx <- perf_cht$data$x
@@ -166,7 +166,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
   
   # restrict to the period specified
   df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
-  
+  if(nrow(df)==0) {stop("No data for provider period specified")}
   # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
@@ -282,125 +282,6 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
             plot.title = element_text(size = 20, hjust = 0),
             plot.subtitle = element_text(size = 16, face = "italic"),
             axis.line = element_line(colour = "grey60"))
-  } else {df}
-  
-}
-
-
-
-
-
-
-
-
-
-plot_volume_old <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
-                        start.date = "2014-01-01", end.date = "2017-02-28",
-                        brk.date = "2016-01-01", min_upper_y_scale = 3000,
-                        adm_only = FALSE, all_provs = FALSE,
-                        dept_types = c('1','2','3'), x_title = "Week Ending Sunday") {
-  # pass df as cleaned 4h perf data from the clean_4h_data function
-  
-  
-  # lookup full name of provider
-  # note written for just one provider
-  pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
-  #cht_title = paste("Weekly total ED attendances",pr_name,sep="\n")
-  if (adm_only) {
-    cht_title = paste("Weekly total admissions through ED. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
-    y_axis_lab = "Admissions"
-  } else {
-    cht_title = paste("Weekly total ED attendances. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
-    y_axis_lab = "Attendances"
-  }
-  
-  df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only, all_provs = all_provs, dept_types = dept_types, date_col = date.col)
-  
-  df$datecol <- df[, date.col]
-  
-  st.dt <- as.Date(start.date)
-  ed.dt <- as.Date(end.date)
-  br.dt <- as.Date(brk.date)
-  
-  # restrict to the period specified
-  df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
-  
-  # chart y limit
-  ylimhigh <- max(max(df$Total),min_upper_y_scale)
-  
-  pp <- ggplot(data = df, aes(x = datecol, y = Total))
-  
-  pp + geom_path() + geom_point() + ylim(0,ylimhigh) +
-  scale_x_date(labels = date_format("%Y-%m"),breaks = date_breaks("3 months")) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(),
-        axis.line=element_line(colour = "grey75"), axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.75), plot.title = element_text(hjust = 0.5)) +
-  labs(title = cht_title, x=x_title, y=y_axis_lab) +
-  geom_vline(xintercept = as.numeric(br.dt), colour="grey60")
-  
-}
-
-
-plot_volume_c <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
-                             start.date = "2014-01-01", end.date = "2017-02-28",
-                             brk.date = "2016-01-01", min_upper_y_scale = 3000,
-                             adm_only = FALSE, all_provs = FALSE,
-                             dept_types = c('1','2','3'), plot.chart = TRUE,
-                             pr_name = NULL, x_title = "Week Ending Sunday") {
-  # pass df as cleaned 4h perf data from the clean_4h_data function
-  
-  # if no pr_name passed, lookup full name of provider
-  # note written for just one provider
-  if (is_null(pr_name)) {
-    pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
-  }
-  #cht_title = paste("Weekly percentage ED attendances with time in department < 4h",pr_name,sep="\n")
-  if (adm_only) {
-    cht_title = paste("Weekly total admissions through ED. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
-    y_axis_lab = "Admissions"
-  } else {
-    cht_title = paste("Weekly total ED attendances. Dept. types: ",paste(dept_types,sep="",collapse=","),sep="")
-    y_axis_lab = "Attendances"
-  }
-  
-  df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
-                         all_provs = all_provs, dept_types = dept_types, date_col = date.col)
-  
-  df$datecol <- df[, date.col]
-  
-  st.dt <- as.Date(start.date)
-  ed.dt <- as.Date(end.date)
-  br.dt <- as.Date(brk.date)
-  
-  # restrict to the period specified
-  df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
-  
-  # locate break row
-  v <- df[,date.col]
-  br.row <- which(v == max(v[v < br.dt]))
-  
-  # This is a hack - find better way to modify colours of qicharts
-  # Also needs stepped limits
-  
-  pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df$datecol, data = df, chart = 'u', prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = TRUE)
-  
-  # chart y limit
-  ylimhigh <- max(max(df$Total),min_upper_y_scale)
-  
-  col1    <- rgb(000, 000, 000, maxColorValue = 255)
-  col2    <- rgb(241, 088, 084, maxColorValue = 255)
-  col3    <- rgb(000, 000, 000, maxColorValue = 255)
-  col4    <- 'white'
-  col5    <-  rgb(096, 189, 104, maxColorValue = 255)
-  cols    <- c('col1' = col1, 'col2' = col2, 'col3' = col3, 'col4' = col4)
-  
-  if(plot.chart == TRUE) {pct + geom_line(aes_string(x = 'x', y = 'lcl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
-      geom_line(aes_string(x = 'x', y = 'ucl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
-      geom_line(aes_string(x = 'x', y = 'cl', group = 'breaks'), colour = '#000000', linetype = 1) +
-      geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
-      geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
-      scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
-      labs(title = cht_title, x=x_title, y=y_axis_lab, subtitle = pr_name) +
-      ylim(0,ylimhigh) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) + theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.75), plot.title = element_text(hjust = 0.5), axis.line = element_line(colour = "grey60"))
   } else {df}
   
 }
