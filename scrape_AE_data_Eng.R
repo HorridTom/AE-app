@@ -182,7 +182,9 @@ make_p4h_from_sitreps <- function(AE_data) {
   
   # Select only the columns needed for the combinations of flag variables
   AE_data <- AE_data %>% select(Prov_Code, Prov_Name, Region, Month_Start,
-                           Att_All_NotBr, Att_All_Br, E_Adm_Not4hBr_D, E_Adm_4hBr_D)
+                           Att_Typ1_NotBr, Att_Typ1_Br, Att_Typ2_NotBr, Att_Typ2_Br,
+                           Att_Typ3_NotBr, Att_Typ3_Br,
+                           E_Adm_Not4hBr_D, E_Adm_4hBr_D)
   
   # Now gather all but org info and month
   df <- AE_data %>% gather(key, value, -Prov_Code, -Prov_Name, -Region, -Month_Start)
@@ -191,7 +193,7 @@ make_p4h_from_sitreps <- function(AE_data) {
   df$Admitted <- grepl('E_Adm*', df$key)
   df$Greater_4h <- grepl('*_Br*|*_4hBr_*', df$key)
   df$Greater_12h <- NA
-  df$AEA_Department_Type <- NA
+  df$AEA_Department_Type <- str_match(df$key, 'Typ([0-9])_')[,2]
   
   # Rename
   df <- df %>% rename(Activity = value)
@@ -200,7 +202,7 @@ make_p4h_from_sitreps <- function(AE_data) {
   df$key <- NULL
   
   # Convert to date
-  df$Month_Start <- as.Date(df$Month_Start)
+  df$Month_Start <- as.Date(df$Month_Start, tz = 'Europe/London')
   
   df
 }
