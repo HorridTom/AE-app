@@ -6,8 +6,10 @@ library(RColorBrewer)
 library(reshape2)
 library(scales)
 library(stringr)
+
+library(nhsAEscraper)
+
 Sys.setenv(TZ='Europe/London')
-source("scrape_AE_data_Eng.R")
 source("perf_4h_analysis.R")
 
 update_data = TRUE
