@@ -33,6 +33,7 @@ ui <- fluidPage(
           uiOutput("orgControl"),
           checkboxInput("adm_only_checkbox", label = "Only include admissions", value = FALSE),
         uiOutput("t1Control"),
+          p("Note: the measure for admissions refers to time from decision to admit, not arrival."),
           HTML("<br/>"),
           HTML("<br/>"),
           p("This analysis uses p-prime and u-prime charts, more information
