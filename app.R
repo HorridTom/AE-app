@@ -13,11 +13,11 @@ Sys.setenv(TZ='Europe/London')
 source("perf_4h_analysis.R")
 
 update_data = TRUE
-
-AE_Data <- getAE_data(update_data = update_data)
+urls_of_data <- getAEdata_urls_monthly()
+AE_Data <- getAE_data(update_data = update_data, directory = 'data-raw')
 sitrep_perf_df <- make_p4h_from_sitreps(AE_Data)
-
 assign("sitrep_perf", sitrep_perf_df, envir = .GlobalEnv)
+assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
 # Define UI
 ui <- fluidPage(
@@ -58,6 +58,21 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output) {
   
+  # If new data has been released since the app was launched,
+  # download it
+  current_data_urls <- getAEdata_urls_monthly()
+  if (!setequal(urls_of_data_obtained, current_data_urls)) {
+    file.remove(
+      dir('data-raw',
+          pattern = "*",
+          full.names = TRUE)
+      )
+    AE_Data <- getAE_data(update_data = TRUE, directory = 'data-raw')
+    sitrep_perf_df <- make_p4h_from_sitreps(AE_Data)
+    
+    assign("sitrep_perf", sitrep_perf_df, envir = .GlobalEnv)
+    assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
+  }
   
   provLookup <- sitrep_perf[!duplicated(sitrep_perf[,c('Prov_Code')]),c('Prov_Code','Prov_Name')]
   provLookup <- provLookup %>% arrange(Prov_Name)
