@@ -31,8 +31,7 @@ ui <- fluidPage(
         p("This application provides statistical process control analysis of
           accident and emergency data for English NHS Trusts."),
           uiOutput("orgControl"),
-          checkboxInput("adm_only_checkbox", label = "Only include admissions", value = FALSE),
-        uiOutput("t1Control"),
+          uiOutput("t1Control"),
           HTML("<br/>"),
           HTML("<br/>"),
           p("This analysis uses p-prime and u-prime charts, more information
@@ -72,11 +71,7 @@ server <- function(input, output) {
   })
   
   output$t1Control <- renderUI({
-    if (!input$adm_only_checkbox) {
       checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)
-    } else {
-      p("Department type not available for admission performance data")
-    }
   })
    
    output$edPerfPlot <- renderPlot({
@@ -84,12 +79,9 @@ server <- function(input, output) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
       dept_types <- c('1','2','3')
       if(input$t1_only_checkbox) {dept_types = c('1')}
-      if(input$adm_only_checkbox){
-        dept_types = NA
-      }
       tryCatch(plot_performance(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
-                                x_title = "Month", adm_only = input$adm_only_checkbox),
+                                x_title = "Month", adm_only = FALSE),
                error=function(e) NULL)
      }
     })
@@ -99,12 +91,9 @@ server <- function(input, output) {
        pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
        dept_types <- c('1','2','3')
        if(input$t1_only_checkbox) {dept_types = c('1')}
-       if(input$adm_only_checkbox){
-         dept_types = NA
-       }
        tryCatch(plot_volume(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                             brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
-                            x_title = "Month", adm_only = input$adm_only_checkbox),
+                            x_title = "Month", adm_only = FALSE),
                 error=function(e) NULL)
      }
    })
