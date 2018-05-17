@@ -16,8 +16,3 @@ testthat::test_that("Output of conversion has correct dimensions and colnames",{
     testthat::expect_equal(colnames(p4h), perf_data_colnames)
     testthat::expect_equal(nrow(p4h), 192)
 })
-
-# Should rapidly refactor to remove need to go to this data format if possible.
-#testthat::test_that("Some example org-months are correctly converted",{
-#    p4h <- make_p4h_from_sitreps(AE_data_test)
-#})

@@ -1,4 +1,3 @@
-
 library(shiny)
 library(tidyverse)
 library(qicharts)
@@ -15,8 +14,7 @@ source("perf_4h_analysis.R")
 update_data = TRUE
 urls_of_data <- getAEdata_urls_monthly()
 AE_Data <- getAE_data(update_data = update_data, directory = 'data-raw')
-sitrep_perf_df <- make_p4h_from_sitreps(AE_Data)
-assign("sitrep_perf", sitrep_perf_df, envir = .GlobalEnv)
+assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
 # Define UI
@@ -68,13 +66,11 @@ server <- function(input, output) {
           full.names = TRUE)
       )
     AE_Data <- getAE_data(update_data = TRUE, directory = 'data-raw')
-    sitrep_perf_df <- make_p4h_from_sitreps(AE_Data)
-    
-    assign("sitrep_perf", sitrep_perf_df, envir = .GlobalEnv)
+    assign("AE_Data", AE_Data, envir = .GlobalEnv)
     assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
   }
   
-  provLookup <- sitrep_perf[!duplicated(sitrep_perf[,c('Prov_Code')]),c('Prov_Code','Prov_Name')]
+  provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name')]
   provLookup <- provLookup %>% arrange(Prov_Name)
   orgs <- provLookup$Prov_Code
   orgNames <- provLookup$Prov_Name
@@ -96,7 +92,7 @@ server <- function(input, output) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
       dept_types <- c('1','2','3')
       if(input$t1_only_checkbox) {dept_types = c('1')}
-      tryCatch(plot_performance(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+      tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
                                 x_title = "Month", adm_only = FALSE),
                error=function(e) NULL)
@@ -108,7 +104,7 @@ server <- function(input, output) {
        pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
        dept_types <- c('1','2','3')
        if(input$t1_only_checkbox) {dept_types = c('1')}
-       tryCatch(plot_volume(sitrep_perf, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+       tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                             brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
                             x_title = "Month", adm_only = FALSE),
                 error=function(e) NULL)
@@ -118,4 +114,3 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-

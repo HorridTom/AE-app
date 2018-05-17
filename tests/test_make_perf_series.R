@@ -4,16 +4,16 @@ context("Make a performance timeseries dataset")
 load('test-data/AE_data_test.rda')
 load('test-data/perf_data_colnames.rda')
 
-p4h <- make_p4h_from_sitreps(AE_data_test)
+#p4h <- make_p4h_from_sitreps(AE_data_test)
 
 testthat::test_that("Created timeseries dataset is a dataframe",{
-  ps_rqm_all_all <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                           adm_only = FALSE, dept_types = c(1,2,3),
                                           date_col = 'Month_Start')
-  ps_rqm_all_typ1 <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                      adm_only = FALSE, dept_types = c(1),
                                      date_col = 'Month_Start')
-  ps_rqm_adm_all <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                      adm_only = TRUE, dept_types = NA,
                                      date_col = 'Month_Start')
   
@@ -23,13 +23,13 @@ testthat::test_that("Created timeseries dataset is a dataframe",{
 })
 
 testthat::test_that("Results for selected months in performance series for Chelsea and Westminster are correct",{
-  ps_rqm_all_all <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                      adm_only = FALSE, dept_types = c(1,2,3),
                                      date_col = 'Month_Start')
-  ps_rqm_all_typ1 <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                       adm_only = FALSE, dept_types = c(1),
                                       date_col = 'Month_Start')
-  ps_rqm_adm_all <- make_perf_series(df = p4h_test, prov_codes = c('RQM'),
+  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
                                      adm_only = TRUE, dept_types = NA,
                                      date_col = 'Month_Start')
   
@@ -78,13 +78,13 @@ testthat::test_that("Results for selected months in performance series for Chels
 })
 
 testthat::test_that("Results for selected months in performance series for Imperial are correct",{
-  ps_ryj_all_all <- make_perf_series(df = p4h_test, prov_codes = c('RYJ'),
+  ps_ryj_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
                                      adm_only = FALSE, dept_types = c(1,2,3),
                                      date_col = 'Month_Start')
-  ps_ryj_all_typ1 <- make_perf_series(df = p4h_test, prov_codes = c('RYJ'),
+  ps_ryj_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
                                       adm_only = FALSE, dept_types = c(1),
                                       date_col = 'Month_Start')
-  ps_ryj_adm_all <- make_perf_series(df = p4h_test, prov_codes = c('RYJ'),
+  ps_ryj_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
                                      adm_only = TRUE, dept_types = NA,
                                      date_col = 'Month_Start')
   
