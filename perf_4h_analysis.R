@@ -2,99 +2,62 @@ library(tidyverse)
 library(ggplot2)
 library(scales)
 
-make_perf_series <- function(df, prov_codes = c("RBZ"), perf_only = FALSE, 
-                             adm_only = FALSE, all_provs = FALSE, merge_provs = NULL,
-                             dept_types = c('1','2','3'), date_col = 'Wk_End_Sun') {
-  df <- make_p4h_from_sitreps(df)
+make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
-  df <- df[which(df$AEA_Department_Type %in% dept_types),]
+  df <- df %>% filter(Prov_Code %in% prov_codes)
+  df <- make_new_variables(df)
   
-  # TODO: This is a horrible hack - use tidyverse throughout to avoid?
-  newdatecol <- df[, date_col]
-  if ("Date" %in% class(newdatecol)) {
-    df$datecol <- newdatecol
-  } else {
-    df$datecol <- newdatecol[[1]]
-  }
-  
-  if(is.null(merge_provs)) {merge_provs <- all_provs}
-  
-  if (!all_provs) {data_prov <- df[df$Prov_Code %in% prov_codes,]} else {
-    data_prov <- df
-  }
-  
-  if (adm_only) {
-    data_prov <- data_prov[data_prov$Admitted == TRUE,]
-  }
-  
-  if (merge_provs) {
-    south_4h <- aggregate(Activity ~ datecol + Greater_4h, data = data_prov, sum)
-  } else {
-    south_4h <- aggregate(Activity ~ datecol + Prov_Code + Greater_4h, data = data_prov, sum)
-  }
-  perf_4h_wide <- tidyr::spread(data = south_4h, key = Greater_4h, value = Activity)
-  
-  colnames(perf_4h_wide)[colnames(perf_4h_wide) == "FALSE"] <- "Within_4h"
-  colnames(perf_4h_wide)[colnames(perf_4h_wide) == "TRUE"] <- "Greater_4h"
-
-  perf_4h_wide$Total <- perf_4h_wide$Within_4h + perf_4h_wide$Greater_4h
-  perf_4h_wide$Performance <- perf_4h_wide$Within_4h / perf_4h_wide$Total
-  
-  perf_4h_wide <- perf_4h_wide[order(perf_4h_wide$datecol),]
-  
-  if (perf_only) {
-    perf_4h_wide <- perf_4h_wide$Performance
-  } else {
-    perf_4h_wide[,date_col] <- perf_4h_wide$datecol
-    perf_4h_wide$datecol <- NULL
-  }
-  
-  perf_4h_wide
-
+  perf_series <- switch(measure,
+         All = df %>%
+           select(Prov_Code, Month_Start,
+                  Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All),
+         Typ1 = df %>%
+           select(Prov_Code, Month_Start,
+                  Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total = Att_Typ1),
+         Adm = df %>%
+           select(Prov_Code, Month_Start,
+                  Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED)
+           )
+  perf_series %>% mutate(Performance = Within_4h / Total)
 }
 
 
-plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
+plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              start.date = "2014-01-01", end.date = "2017-06-30",
                              brk.date = "2016-02-01", max_lower_y_scale = 60,
-                             adm_only = FALSE, all_provs = FALSE,
-                             dept_types = c('1','2','3'), plot.chart = TRUE,
+                             all_provs = FALSE,
+                             measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Week Ending Sunday") {
-  # pass df as cleaned 4h perf data from the clean_4h_data function
-  
+
   # if no pr_name passed, lookup full name of provider
   # note written for just one provider
   if (is.null(pr_name)) {
     pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
   }
-  #cht_title = paste("Percentage A&E attendances with time in department < 4h",pr_name,sep="\n")
-  if (adm_only) {
-    cht_title = paste("Percentage admissions through A&E\nwith time in department < 4h",sep="")
-  } else {
-    cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
-  }
   
-  df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
-                         all_provs = all_provs, dept_types = dept_types, date_col = date.col)
+  cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
+  
+  df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
+  df$Month_Start <- as.Date(df$Month_Start)
   
   st.dt <- as.Date(start.date)
   ed.dt <- as.Date(end.date)
   
   # restrict to the period specified
-  df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
+  df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
   # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
   if (is.null(brk.date)) {
-    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
+    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df$Month_Start, data = df, chart = 'p', multiply = 100, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
-    v <- df[,date.col]
+    v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df[,date.col], data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
+    pct <- qicharts::tcc(n = Within_4h, d = df$Total, x = df$Month_Start, data = df, chart = 'p', multiply = 100, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
   }
   # chart y limit
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
@@ -129,47 +92,42 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
 }
 
 
-plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Wk_End_Sun',
+plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              start.date = "2014-01-01", end.date = "2017-06-30",
                              brk.date = "2016-02-01", max_lower_y_scale = 60,
-                             adm_only = FALSE, all_provs = FALSE,
-                             dept_types = c('1','2','3'), plot.chart = TRUE,
+                             all_provs = FALSE,
+                             measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Week Ending Sunday") {
-  # pass df as cleaned 4h perf data from the clean_4h_data function
   
   # if no pr_name passed, lookup full name of provider
   # note written for just one provider
   if (is.null(pr_name)) {
     pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
   }
-
-  if (adm_only) {
-    cht_title = paste("Number of admissions through A&E",sep="")
-  } else {
-    cht_title = paste("Number of A&E attendances",sep="")
-  }
   
-  df <- make_perf_series(df = df, prov_codes = prov_codes, adm_only = adm_only,
-                         all_provs = all_provs, dept_types = dept_types, date_col = date.col)
+  cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
+  
+  df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
+  df$Month_Start <- as.Date(df$Month_Start)
   
   st.dt <- as.Date(start.date)
   ed.dt <- as.Date(end.date)
   
   # restrict to the period specified
-  df <- df[df[,date.col] >= st.dt & df[,date.col] <= ed.dt,]
+  df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   
   # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
   if (is.null(brk.date)) {
-    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df[,date.col], data = df, chart = 'u', multiply = 1, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
+    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df$Month_Start, data = df, chart = 'u', multiply = 1, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
     v <- df[,date.col]
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df[,date.col], data = df, chart = 'u', multiply = 1, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
+    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df$Month_Start, data = df, chart = 'u', multiply = 1, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
   }
   # chart y limit
   ylimlow <- 0
@@ -213,37 +171,4 @@ make_new_variables <- function(AE_data) {
   
   AE_data
   
-}
-
-
-make_p4h_from_sitreps <- function(AE_data) {
-  
-  # Add additional columns to make transformation simpler
-  AE_data <- make_new_variables(AE_data)
-  
-  # Select only the columns needed for the combinations of flag variables
-  AE_data <- AE_data %>% select(Prov_Code, Prov_Name, Region, Month_Start,
-                                Att_Typ1_NotBr, Att_Typ1_Br, Att_Typ2_NotBr, Att_Typ2_Br,
-                                Att_Typ3_NotBr, Att_Typ3_Br,
-                                E_Adm_Not4hBr_D, E_Adm_4hBr_D)
-  
-  # Now gather all but org info and month
-  df <- AE_data %>% gather(key, value, -Prov_Code, -Prov_Name, -Region, -Month_Start)
-  
-  # Create flag columns
-  df$Admitted <- grepl('E_Adm*', df$key)
-  df$Greater_4h <- grepl('*_Br*|*_4hBr_*', df$key)
-  df$Greater_12h <- NA
-  df$AEA_Department_Type <- str_match(df$key, 'Typ([0-9])_')[,2]
-  
-  # Rename
-  df <- df %>% rename(Activity = value)
-  
-  # Remove redundant key column
-  df$key <- NULL
-  
-  # Convert to date
-  df$Month_Start <- as.Date(df$Month_Start, tz = 'Europe/London')
-  
-  df
 }

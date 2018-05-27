@@ -90,11 +90,11 @@ server <- function(input, output) {
    output$edPerfPlot <- renderPlot({
      if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
-      dept_types <- c('1','2','3')
-      if(input$t1_only_checkbox) {dept_types = c('1')}
+      measure <- "All"
+      if(input$t1_only_checkbox) {measure <- "Typ1"}
       tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
-                                brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
-                                x_title = "Month", adm_only = FALSE),
+                                brk.date = perf.brk.date, date.col = 'Month_Start',
+                                x_title = "Month", measure = measure),
                error=function(e) NULL)
      }
     })
@@ -102,11 +102,11 @@ server <- function(input, output) {
    output$edVolPlot <- renderPlot({
      if (length(input$trust) != 0) {
        pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
-       dept_types <- c('1','2','3')
-       if(input$t1_only_checkbox) {dept_types = c('1')}
+       measure <- "All"
+       if(input$t1_only_checkbox) {measure <- "Typ1"}
        tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
-                            brk.date = perf.brk.date, dept_types = dept_types, date.col = 'Month_Start',
-                            x_title = "Month", adm_only = FALSE),
+                            brk.date = perf.brk.date, date.col = 'Month_Start',
+                            x_title = "Month", measure = measure),
                 error=function(e) NULL)
      }
    })
