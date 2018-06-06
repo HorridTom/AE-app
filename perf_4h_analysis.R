@@ -38,10 +38,10 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
-  df$Month_Start <- as.Date(df$Month_Start)
+  df$Month_Start <- as.Date(df$Month_Start, tz = "Europe/London")
   
-  st.dt <- as.Date(start.date)
-  ed.dt <- as.Date(end.date)
+  st.dt <- as.Date(start.date, tz = "Europe/London")
+  ed.dt <- as.Date(end.date, tz = "Europe/London")
   
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
@@ -108,10 +108,10 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
-  df$Month_Start <- as.Date(df$Month_Start)
+  df$Month_Start <- as.Date(df$Month_Start, tz = "Europe/London")
   
-  st.dt <- as.Date(start.date)
-  ed.dt <- as.Date(end.date)
+  st.dt <- as.Date(start.date, tz = "Europe/London")
+  ed.dt <- as.Date(end.date, tz = "Europe/London")
   
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
