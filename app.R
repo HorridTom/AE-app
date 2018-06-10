@@ -1,6 +1,6 @@
 library(shiny)
 library(tidyverse)
-library(qicharts)
+library(qicharts2)
 library(RColorBrewer)
 library(reshape2)
 library(scales)

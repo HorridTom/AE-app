@@ -5,7 +5,13 @@ library(scales)
 make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
   df <- df %>% filter(Prov_Code %in% prov_codes)
-  df <- make_new_variables(df)
+  
+  # Make new variables
+  df <- df %>% mutate(Att_Typ1_NotBr = Att_Typ1 - Att_Typ1_Br,
+                      Att_Typ2_NotBr = Att_Typ2 - Att_Typ2_Br,
+                      Att_Typ3_NotBr = Att_Typ3 - Att_Typ3_Br,
+                      Att_All_NotBr = Att_All - Att_All_Br,
+                      E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D)
   
   perf_series <- switch(measure,
          All = df %>%
@@ -110,7 +116,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
     pr_name <- df[which(df$Prov_Code == prov_codes),"Prov_Name"][[1]]
   }
   
-  cht_title = paste("Percentage A&E attendances\nwith time in department < 4h",sep="")
+  cht_title = "Number A&E attendances"
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
   df$Month_Start <- as.Date(df$Month_Start, tz = "Europe/London")
@@ -120,60 +126,53 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
+  if(nrow(df)==0) {stop("No data for provider period specified")}
   
-  # This is a hack - find better way to modify colours of qicharts
   # Also needs stepped limits
   
   if (is.null(brk.date)) {
-    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df$Month_Start, data = df, chart = 'u', multiply = 1, prime = TRUE, runvals = TRUE, cl.lab = FALSE)
+
+    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up')
+    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
+    pct <- ggplot(pct$data, aes(x,y))
+    
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
-    v <- df[,date.col]
+    v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts::tcc(n = Total, d = rep(1, nrow(df)), x = df$Month_Start, data = df, chart = 'u', multiply = 1, prime = TRUE, breaks = c(br.row), runvals = TRUE, cl.lab = FALSE)
+    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up',
+                          freeze = br.row)
+    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
+    pct <- ggplot(pct$data, aes(x,y))
   }
   # chart y limit
   ylimlow <- 0
   ylimhigh <- 1000*ceiling(max(df$Total)*1.1/1000)
   
-  col1    <- rgb(000, 000, 000, maxColorValue = 255)
-  col2    <- rgb(241, 088, 084, maxColorValue = 255)
-  col3    <- rgb(000, 000, 000, maxColorValue = 255)
-  col4    <- 'white'
-  col5    <-  rgb(096, 189, 104, maxColorValue = 255)
-  cols    <- c('col1' = col1, 'col2' = col2, 'col3' = col3, 'col4' = col4)
-  
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  if(plot.chart == TRUE) {pct + geom_line(aes_string(x = 'x', y = 'lcl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
-      geom_line(aes_string(x = 'x', y = 'ucl', group = 'breaks'), colour = '#000000', linetype = 'dashed') +
-      geom_line(aes_string(x = 'x', y = 'cl', group = 'breaks'), colour = '#000000', linetype = 1) +
-      geom_line(aes_string(x = 'x', y = 'y', group = 'breaks'), colour = '#000000', linetype = 1, lwd = 1.1) + 
-      geom_point(aes_string(x = 'x', y = 'y', group = 'breaks', fill = 'pcol'), size = 2) + 
-      scale_fill_manual(values = cols) + scale_color_manual(values = cols) +
-      ggtitle(cht_title) +
-      labs(x= x_title, y="Count") +
-      ylim(ylimlow, ylimhigh) + scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date))) +
-      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
+  if(plot.chart == TRUE) {
+    pct + 
+      geom_line(colour = "black", size = .5) + 
+      geom_line(aes(x,cl), size = 0.75) +
+      geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
+      geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
+      geom_point(colour = "black" , fill = "black", size = 2) +
+      scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = as.Date(c(start.date, end.date), tz = "Europe/London")) +
+      theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_blank(),
+            panel.grid.minor = element_blank(), panel.background = element_blank(),
+            axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
             axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
             plot.title = element_text(size = 20, hjust = 0),
             plot.subtitle = element_text(size = 16, face = "italic"),
-            axis.line = element_line(colour = "grey60"))
+            axis.line = element_line(colour = "grey60")) +
+      ggtitle(cht_title, subtitle = pr_name) +
+      labs(x= x_title, y="Percentage") +
+      ylim(ylimlow, ylimhigh)
+      
   } else {df}
   
 }
 
-
-make_new_variables <- function(AE_data) {
-  
-  AE_data <- AE_data %>% mutate(Att_Typ1_NotBr = Att_Typ1 - Att_Typ1_Br,
-                                Att_Typ2_NotBr = Att_Typ2 - Att_Typ2_Br,
-                                Att_Typ3_NotBr = Att_Typ3 - Att_Typ3_Br,
-                                Att_All_NotBr = Att_All - Att_All_Br,
-                                E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D)
-  
-  AE_data
-  
-}
