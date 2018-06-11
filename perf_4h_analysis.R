@@ -55,7 +55,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   if (is.null(brk.date)) {
     pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    pct <- ggplot(pct$data, aes(x,y))
+    pct <- ggplot(pct$data, aes(x,y, label = x))
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
@@ -80,7 +80,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
       ggtitle(cht_title, subtitle = pr_name) +
       labs(x= x_title, y="Percentage") +
-      ylim(ylimlow,100)
+      ylim(ylimlow,100) +
+      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.1, vjust=0)
   } else {df}
 }
 
