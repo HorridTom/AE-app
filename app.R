@@ -1,9 +1,5 @@
 library(shiny)
 library(tidyverse)
-library(qicharts2)
-library(RColorBrewer)
-library(reshape2)
-library(scales)
 library(stringr)
 
 library(nhsAEscraper)
