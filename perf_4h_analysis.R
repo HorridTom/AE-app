@@ -79,7 +79,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
       scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = c(st.dt, ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
       ggtitle(cht_title, subtitle = pr_name) +
-      labs(x= x_title, y="Percentage") +
+      labs(x= x_title, y="Percentage within 4 hours") +
       ylim(ylimlow,100) +
       geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.1, vjust=0)
   } else {df}
@@ -133,7 +133,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
     format_control_chart(pct) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = c(st.dt, ed.dt)) +
       ggtitle(cht_title, subtitle = pr_name) +
-      labs(x= x_title, y="Percentage") +
+      labs(x= x_title, y="Number of attendances") +
       ylim(ylimlow, ylimhigh)
   } else {df}
 }
