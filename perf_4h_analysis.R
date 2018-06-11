@@ -1,4 +1,5 @@
 library(tidyverse)
+library(qicharts2)
 library(ggplot2)
 library(scales)
 
