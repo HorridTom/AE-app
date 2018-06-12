@@ -47,6 +47,9 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   # convert arguments to dates
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
+  q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
+  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
+  cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
   
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
@@ -76,12 +79,12 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   if(plot.chart == TRUE) {
     format_control_chart(pct) + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
-      scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = c(st.dt, ed.dt)) +
+      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
       ggtitle(cht_title, subtitle = pr_name) +
       labs(x= x_title, y="Percentage within 4 hours") +
       ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.1, vjust=0)
+      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=0.35, vjust=2)
   } else {df}
 }
 
@@ -99,9 +102,12 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Prov_Name)}
   
-  # convert arguments to dates
+  # convert arguments to dates and round to nearest quarter
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
+  q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
+  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
+  cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
   
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
@@ -131,10 +137,11 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   if(plot.chart == TRUE) {
     format_control_chart(pct) + 
-      scale_x_date(labels = date_format("%Y-%m"), breaks = date_breaks("3 months"), limits = c(st.dt, ed.dt)) +
+      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks) +
       ggtitle(cht_title, subtitle = pr_name) +
       labs(x= x_title, y="Number of attendances") +
-      ylim(ylimlow, ylimhigh)
+      scale_y_continuous(limits = c(ylimlow, ylimhigh),
+                         breaks = seq(ylimlow, ylimhigh, 1000*round((ylimhigh-ylimlow)/8/1000)))
   } else {df}
 }
 
@@ -146,7 +153,7 @@ format_control_chart <- function(cht) {
     geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
     geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
     geom_point(colour = "black" , fill = "black", size = 2) +
-    theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_blank(),
+    theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_line(colour = "grey80"),
               panel.grid.minor = element_blank(), panel.background = element_blank(),
               axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
               axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
