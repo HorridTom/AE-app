@@ -2,6 +2,7 @@ library(tidyverse)
 library(qicharts2)
 library(ggplot2)
 library(scales)
+library(zoo)
 
 make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
