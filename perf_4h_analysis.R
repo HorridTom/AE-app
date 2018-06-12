@@ -80,12 +80,13 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   if(plot.chart == TRUE) {
     format_control_chart(pct) + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
-      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks) +
+      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
+                   limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
       ggtitle(cht_title, subtitle = pr_name) +
       labs(x= x_title, y="Percentage within 4 hours") +
       ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=0.35, vjust=2)
+      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
   } else {df}
 }
 
@@ -138,7 +139,8 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   if(plot.chart == TRUE) {
     format_control_chart(pct) + 
-      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks) +
+      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
+                   limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = pr_name) +
       labs(x= x_title, y="Number of attendances") +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),

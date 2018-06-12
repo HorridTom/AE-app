@@ -71,7 +71,7 @@ server <- function(input, output) {
   orgs <- provLookup$Prov_Code
   orgNames <- provLookup$Prov_Name
   
-  perf.start.date <- "2015-06-01"
+  perf.start.date <- "2015-07-01"
   perf.end.date <- lubridate::today()
   perf.brk.date <- NULL
   
