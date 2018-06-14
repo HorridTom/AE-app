@@ -87,7 +87,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
       labs(x= x_title, y="Percentage within 4 hours") +
       ylim(ylimlow,100) +
       geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
-  } else {df}
+  } else {pct$data}
 }
 
 
