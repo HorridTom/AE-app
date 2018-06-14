@@ -1,5 +1,5 @@
-source('../perf_4h_analysis.R')
 context("Make a performance timeseries dataset")
+source('../perf_4h_analysis.R')
 
 load('test-data/AE_data_test.rda')
 load('test-data/perf_data_colnames.rda')

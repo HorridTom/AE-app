@@ -1,5 +1,5 @@
-source('../perf_4h_analysis.R')
 context("Plot performance and volume")
+source('../perf_4h_analysis.R')
 
 load('test-data/AE_data_test.rda')
 
