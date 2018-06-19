@@ -1,4 +1,5 @@
 library(shiny)
+library(shinydashboard)
 library(tidyverse)
 library(stringr)
 
@@ -14,40 +15,44 @@ assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
 # Define UI
-ui <- fluidPage(
+ui <- dashboardPage(
    
    # Logo
-   img(src = "CLAHRC-logo.png", height = 60, width = 200),
+   # img(src = "CLAHRC-logo.png", height = 60, width = 200),
   
    # Application title
-   titlePanel("NHS England Trusts 4hr Performance Over Time"),
+   dashboardHeader(title = "A&E Charts",
+                   titleWidth = 300),
+   dashboardSidebar(width = 300,
+      sidebarMenuOutput("menu")
+    ),
    
-   sidebarLayout(
-      sidebarPanel(
-        p("This application provides statistical process control analysis of
-          accident and emergency data for English NHS Trusts."),
-          uiOutput("orgControl"),
-          uiOutput("t1Control"),
-          HTML("<br/>"),
-          HTML("<br/>"),
-          p("This analysis uses p-prime and u-prime charts, more information
-          is available here:"),
-          a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
-          HTML("<br/>"),
-          HTML("<br/>"),
-          p("All the data used
-          is publicly available from the NHS England website:"),
-          a("A&E waiting times and activity", href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/")
+   dashboardBody(
+     tabItems(
+       tabItem(tabName = "analysis", tags$h1("NHS England Trusts: Analysis of 4hr target data"),
+       fluidRow(column(width = 12,
+        box(plotOutput("edPerfPlot"), width = NULL),
+        box(plotOutput("edVolPlot"), width = NULL)
+       ))
       ),
-      
-      # Show a plot
-      mainPanel(
-        plotOutput("edPerfPlot"),
-        plotOutput("edVolPlot")
-      )
-      
-   )
+        tabItem(tabName = "understanding",
+                h1("Understanding the analysis"),
+                p("This application provides statistical process control analysis of
+                  accident and emergency data for English NHS Trusts."),
+                br(),
+                p("This analysis uses p-prime and u-prime charts, more information
+                  is available here:"),
+                a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
+                br(),
+                p("All the data used
+                is publicly available from the NHS England website:"),
+                a("A&E waiting times and activity",
+                  href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/")
+          )
+        )
+    )
 )
+
 
 # Define server logic
 server <- function(input, output) {
@@ -75,14 +80,18 @@ server <- function(input, output) {
   perf.end.date <- lubridate::today()
   perf.brk.date <- NULL
   
-  output$orgControl <- renderUI({
-    selectInput("trust", "Choose Trust", orgNames)
+  output$menu <- renderMenu({
+    sidebarMenu(id = "tabs",
+      menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital", lib = "font-awesome")),
+      conditionalPanel(condition = "input.tabs === 'analysis'",
+                       selectInput("trust", "Choose Trust", orgNames),
+                       checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
+                                     value = FALSE)
+      ),
+      menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-square'))
+    )
   })
-  
-  output$t1Control <- renderUI({
-      checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)
-  })
-   
+
    output$edPerfPlot <- renderPlot({
      if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
