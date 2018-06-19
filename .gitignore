@@ -7,3 +7,4 @@ data-raw/
 data-out/
 tests/test-data/
 logs/
+packrat/lib*/
