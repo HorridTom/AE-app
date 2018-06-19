@@ -16,25 +16,39 @@ assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
 # Define UI
 ui <- dashboardPage(
-   
-   # Logo
-   # img(src = "CLAHRC-logo.png", height = 60, width = 200),
-  
+
    # Application title
-   dashboardHeader(title = "A&E Charts",
-                   titleWidth = 300),
-   dashboardSidebar(width = 300,
+   dashboardHeader(tags$li(class = "dropdown",
+                           tags$style(".main-header {max-height: 90px}"),
+                           tags$style(".main-header .logo {height: 90px;}"),
+                           tags$style(".sidebar-toggle {height: 90px; padding-top: 1px !important;}"),
+                           tags$style(".navbar {min-height:90px !important}")
+                          ),
+                    title = "A&E Charts",
+                    titleWidth = 300,
+                    dropdownMenu(type = "notifications", badgeStatus = NULL, headerText = NULL,
+                                  icon = img(src="CLAHRC-logo-white.png", height = 60, width = 190))
+    ),
+   dashboardSidebar(tags$style(".left-side, .main-sidebar {padding-top: 90px}"),
+                    width = 300,
       sidebarMenuOutput("menu")
     ),
    
    dashboardBody(
+    # No CSS styling for now
+    #tags$head(
+    #   tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+    #),
      tabItems(
-       tabItem(tabName = "analysis", tags$h1("NHS England Trusts: Analysis of 4hr target data"),
-       fluidRow(column(width = 12,
-        box(plotOutput("edPerfPlot"), width = NULL),
-        box(plotOutput("edVolPlot"), width = NULL)
-       ))
-      ),
+       tabItem(tabName = "analysis",
+                h1("Analysis of Accident and Emergency Attendance Data"),
+                h4("NHS England Provider Organisations"),
+                fluidRow(column(width = 12,
+                                box(plotOutput("edPerfPlot"), width = NULL),
+                                box(plotOutput("edVolPlot"), width = NULL)
+                                )
+                         )
+        ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
                 p("This application provides statistical process control analysis of
@@ -48,8 +62,10 @@ ui <- dashboardPage(
                 is publicly available from the NHS England website:"),
                 a("A&E waiting times and activity",
                   href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/")
-          )
-        )
+        ),
+       tabItem(tabName = "dev",
+               h1("Development"))
+      )
     )
 )
 
@@ -82,13 +98,14 @@ server <- function(input, output) {
   
   output$menu <- renderMenu({
     sidebarMenu(id = "tabs",
-      menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital", lib = "font-awesome")),
+      menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome")),
       conditionalPanel(condition = "input.tabs === 'analysis'",
                        selectInput("trust", "Choose Trust", orgNames),
                        checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
                                      value = FALSE)
       ),
-      menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-square'))
+      menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
+      menuItem("Development", tabName = "dev", icon = icon('road'))
     )
   })
 
