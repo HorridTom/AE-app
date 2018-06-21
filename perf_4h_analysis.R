@@ -5,8 +5,6 @@ library(ggplot2)
 library(scales)
 library(zoo)
 
-source("spc_rules.R")
-
 make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
   df <- df %>% filter(Prov_Code %in% prov_codes)
