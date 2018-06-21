@@ -5,6 +5,8 @@ library(ggplot2)
 library(scales)
 library(zoo)
 
+source("spc_rules.R")
+
 make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
   df <- df %>% filter(Prov_Code %in% prov_codes)
@@ -37,7 +39,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
                              start.date = "2015-07-01", end.date = "2018-05-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
-                             pr_name = NULL, x_title = "Month") {
+                             pr_name = NULL, x_title = "Month",
+                             r1_col = "orange", r2_col = "steelblue3") {
 
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
@@ -60,7 +63,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   if (is.null(brk.date)) {
     pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    pct <- ggplot(pct$data, aes(x,y, label = x))
+    cht_data <- add_rule_breaks(pct$data)
+    pct <- ggplot(cht_data, aes(x,y, label = x))
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
@@ -70,7 +74,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
     pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100,
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    pct <- ggplot(pct$data, aes(x,y))
+    cht_data <- add_rule_breaks(pct$data)
+    pct <- ggplot(cht_data, aes(x,y))
   }
   
   # chart y limit
@@ -79,7 +84,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
   if(plot.chart == TRUE) {
-    format_control_chart(pct) + 
+    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
@@ -96,7 +101,8 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
-                             pr_name = NULL, x_title = "Month") {
+                             pr_name = NULL, x_title = "Month",
+                             r1_col = "orange", r2_col = "steelblue3") {
   
   cht_title = "Number of A&E attendances"
   
@@ -119,7 +125,8 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   if (is.null(brk.date)) {
     pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up')
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    pct <- ggplot(pct$data, aes(x,y))
+    cht_data <- add_rule_breaks(pct$data)
+    pct <- ggplot(cht_data, aes(x,y))
   } else {
     br.dt <- as.Date(brk.date)
     # locate break row
@@ -129,7 +136,8 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
     pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up',
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    pct <- ggplot(pct$data, aes(x,y))
+    cht_data <- add_rule_breaks(pct$data)
+    pct <- ggplot(cht_data, aes(x,y))
   }
   
   # chart y limit
@@ -139,7 +147,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
   if(plot.chart == TRUE) {
-    format_control_chart(pct) + 
+    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = pr_name) +
@@ -150,13 +158,15 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
 }
 
 
-format_control_chart <- function(cht) {
+format_control_chart <- function(cht, r1_col, r2_col) {
+  point_colours <- c("Rule 1" = r1_col, "Rule 2" = r2_col, "None" = "black")
   cht + 
     geom_line(colour = "black", size = .5) + 
     geom_line(aes(x,cl), size = 0.75) +
     geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
     geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
-    geom_point(colour = "black" , fill = "black", size = 2) +
+    geom_point(aes(colour = highlight), size = 2) +
+    scale_color_manual("Rule triggered", values = point_colours) +
     theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_line(colour = "grey80"),
               panel.grid.minor = element_blank(), panel.background = element_blank(),
               axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),

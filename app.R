@@ -8,8 +8,12 @@ library(nhsAEscraper)
 Sys.setenv(TZ='Europe/London')
 source("perf_4h_analysis.R")
 
-update_data = TRUE
-urls_of_data <- getAEdata_urls_monthly()
+update_data = FALSE
+r1_col = "orange"
+r2_col = "steelblue3"
+
+urls_of_data <- NULL
+if(update_data) {urls_of_data <- getAEdata_urls_monthly()}
 AE_Data <- getAE_data(update_data = update_data, directory = 'data-raw')
 assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
@@ -24,7 +28,7 @@ ui <- dashboardPage(
                            tags$style(".sidebar-toggle {height: 90px; padding-top: 1px !important;}"),
                            tags$style(".navbar {min-height:90px !important}")
                           ),
-                    title = "A&E Charts",
+                    title = "A&E Tracker",
                     titleWidth = 300,
                     dropdownMenu(type = "notifications", badgeStatus = NULL, headerText = NULL,
                                   icon = img(src="CLAHRC-logo-white.png", height = 60, width = 190))
@@ -51,20 +55,67 @@ ui <- dashboardPage(
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
-                p("This application provides statistical process control analysis of
-                  accident and emergency data for English NHS Trusts."),
-                br(),
-                p("This analysis uses p-prime and u-prime charts, more information
-                  is available here:"),
-                a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
-                br(),
+                p("This application provides statistical analysis of attendance data relating
+                  to providers of NHS accident and emergency department services in England."),
                 p("All the data used
                 is publicly available from the NHS England website:"),
                 a("A&E waiting times and activity",
-                  href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/")
+                  href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/"),
+                h2("Shewhart Charts"),
+                p("The analysis uses Shewhart charts, also known as control charts. There
+                  is a brief explanation of this approach below, for more information
+                  please follow the links in the resources section.
+                  "),
+                p("Shewhart charts can help understand whether and how a measure is changing
+                  over time. The basic components of a Shewhart chart are:"),
+                tagAppendAttributes(tags$ol(
+                  tags$li("A measure plotted over time as a line graph"),
+                  tags$li("A horizontal centre line, often an average, indicating the typical level of the measure"),
+                  tags$li("Control limits: horizontal lines indicating the range the measure usually stays within")
+                ), type = 'A'),
+                p("To interpret a Shewhart chart, a set of rules is used. The rules indicate when the way the
+                  measure varies is different in some way from its typical behaviour. The rules we use in this
+                  analysis are as follows:"),
+                tags$ol(
+                  tags$li("Any month outside the control limits (month highlighted in orange)"),
+                  tags$li("Eight or more consecutive months all above, or all below, the centre line
+                          (months highlighted in blue)")
+                ),
+                p("Any instance of one of these rules being triggered by a measure indicates that there is likely
+                  to be an identifiable cause for this particular pattern in the data. This is known as a special cause
+                  and is worth investigating locally. Learning from special cause variation in a measure can indicate actions
+                  that will result in improvements in patient care in future."),
+                p("If no rules are triggered, this means that the measure is continuing to behave as it usually does. This
+                  indicates that in order to achieve improvements, there is no point in focussing on individual months' highs
+                  and lows. The system needs to be locally diagnosed, and improvments implemented based on the results."),
+                h2("Resources"),
+                p("An introduction to control charts in healthcare:"),
+                a("Statistical process control as a tool for research and healthcare improvement",
+                  href="http://dx.doi.org/10.1136/qhc.12.6.458"),
+                br(),
+                p("Practical, interactive guide to using data to drive improvement:"),
+                a("NHS Improvement: Making Data Count", href="https://improvement.nhs.uk/resources/making-data-count/"),
+                br(),
+                p("This analysis uses p-prime and u-prime charts, more information
+                  is available here:"),
+                a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830")
         ),
        tabItem(tabName = "dev",
-               h1("Development"))
+               h1("Development"),
+               p("This website was developed by the NIHR CLAHRC Northwest London
+                 Public Health and Information Intelligence Theme in collaboration with
+                  NHS England London. It is in a beta-testing phase at present, meaning
+                 that we will review and make further improvements to the site on a regular
+                 basis."),
+               h2("Coming soon..."),
+               p("In the near future we hope to implement the following new features:"),
+               tags$ol(
+                 tags$li("Regional and national aggregated analysis"),
+                 tags$li("Download buttons to make it easy to save the plots (right click and save as for now)"),
+                 tags$li("Improved look and feel"),
+                 tags$li("Distinct periods for control limits, to better reflect shifts in the measures")
+               )
+               )
       )
     )
 )
@@ -75,7 +126,11 @@ server <- function(input, output) {
   
   # If new data has been released since the app was launched,
   # download it
-  current_data_urls <- getAEdata_urls_monthly()
+  if(update_data) {
+    current_data_urls <- getAEdata_urls_monthly()
+  } else {
+      current_data_urls <- NULL
+  }
   if (!setequal(urls_of_data_obtained, current_data_urls)) {
     file.remove(
       dir('data-raw',
@@ -116,7 +171,8 @@ server <- function(input, output) {
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
-                                x_title = "Month", measure = measure),
+                                x_title = "Month", measure = measure,
+                                r1_col = r1_col, r2_col=r2_col),
                error=function(e) NULL)
      }
     })
@@ -128,7 +184,8 @@ server <- function(input, output) {
        if(input$t1_only_checkbox) {measure <- "Typ1"}
        tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                             brk.date = perf.brk.date, date.col = 'Month_Start',
-                            x_title = "Month", measure = measure),
+                            x_title = "Month", measure = measure,
+                            r1_col = r1_col, r2_col=r2_col),
                 error=function(e) NULL)
      }
    })
