@@ -1,5 +1,6 @@
 context("Plot performance and volume")
 source('../perf_4h_analysis.R')
+source("../spc_rules.R")
 
 load('test-data/AE_data_test.rda')
 

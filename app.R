@@ -6,9 +6,10 @@ library(stringr)
 library(nhsAEscraper)
 
 Sys.setenv(TZ='Europe/London')
+source("spc_rules.R")
 source("perf_4h_analysis.R")
 
-update_data = FALSE
+update_data = TRUE
 r1_col = "orange"
 r2_col = "steelblue3"
 
