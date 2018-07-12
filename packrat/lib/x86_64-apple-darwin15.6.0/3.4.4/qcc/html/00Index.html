@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>R: Quality Control Charts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+<h1> Quality Control Charts
+<img class="toplogo" src="../../../doc/html/Rlogo.svg" alt="[R logo]" />
+</h1>
+<hr/>
+<div style="text-align: center;">
+<a href="../../../doc/html/packages.html"><img class="arrow" src="../../../doc/html/left.jpg" alt="[Up]" /></a>
+<a href="../../../doc/html/index.html"><img class="arrow" src="../../../doc/html/up.jpg" alt="[Top]" /></a>
+</div><h2>Documentation for package &lsquo;qcc&rsquo; version 2.7</h2>
+
+<ul><li><a href="../DESCRIPTION">DESCRIPTION file</a>.</li>
+<li><a href="../doc/index.html">User guides, package vignettes and other documentation.</a></li>
+<li><a href="../NEWS">Package NEWS</a>.</li>
+</ul>
+
+<h2>Help Pages</h2>
+
+
+<table width="100%">
+<tr><td style="width: 25%;"><a href="qcc-package.html">qcc-package</a></td>
+<td>Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="shewhart.rules.html">beyond.limits</a></td>
+<td>Functions specifying rules for Shewhart charts</td></tr>
+<tr><td style="width: 25%;"><a href="pareto.chart.html">blues.colors</a></td>
+<td>Pareto chart</td></tr>
+<tr><td style="width: 25%;"><a href="boiler.html">boiler</a></td>
+<td>Boiler temperature data</td></tr>
+<tr><td style="width: 25%;"><a href="cause.and.effect.html">cause.and.effect</a></td>
+<td>Cause and effect diagram</td></tr>
+<tr><td style="width: 25%;"><a href="circuit.html">circuit</a></td>
+<td>Circuit boards data</td></tr>
+<tr><td style="width: 25%;"><a href="cusum.html">cusum</a></td>
+<td>Cusum chart</td></tr>
+<tr><td style="width: 25%;"><a href="cusum.html">cusum.qcc</a></td>
+<td>Cusum chart</td></tr>
+<tr><td style="width: 25%;"><a href="dyedcloth.html">dyedcloth</a></td>
+<td>Dyed cloth data</td></tr>
+<tr><td style="width: 25%;"><a href="ellipseChart.html">ellipseChart</a></td>
+<td>Multivariate Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="ewma.html">ewma</a></td>
+<td>EWMA chart</td></tr>
+<tr><td style="width: 25%;"><a href="ewma.html">ewma.qcc</a></td>
+<td>EWMA chart</td></tr>
+<tr><td style="width: 25%;"><a href="ewmaSmooth.html">ewmaSmooth</a></td>
+<td>EWMA smoothing function</td></tr>
+<tr><td style="width: 25%;"><a href="stats.c.html">limits.c</a></td>
+<td>Functions to plot Shewhart c chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.g.html">limits.g</a></td>
+<td>Statistics used in computing and drawing a Shewhart g chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.np.html">limits.np</a></td>
+<td>Statistics used in computing and drawing a Shewhart np chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.p.html">limits.p</a></td>
+<td>Statistics used in computing and drawing a Shewhart p chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.R.html">limits.R</a></td>
+<td>Statistics used in computing and drawing a Shewhart R chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.S.html">limits.S</a></td>
+<td>Functions to plot Shewhart S chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.T2.html">limits.T2</a></td>
+<td>Statistics used in computing and drawing the Hotelling T^2 chart for subgrouped data</td></tr>
+<tr><td style="width: 25%;"><a href="stats.T2.single.html">limits.T2.single</a></td>
+<td>Statistics used in computing and drawing the Hotelling T^2 chart for individual observations data</td></tr>
+<tr><td style="width: 25%;"><a href="stats.u.html">limits.u</a></td>
+<td>Statistics used in computing and drawing a Shewhart u chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.html">limits.xbar</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.one.html">limits.xbar.one</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart for one-at-time data</td></tr>
+<tr><td style="width: 25%;"><a href="mqcc.html">mqcc</a></td>
+<td>Multivariate Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves.c</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves.p</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves.R</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves.S</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="oc.curves.html">oc.curves.xbar</a></td>
+<td>Operating Characteristic Function</td></tr>
+<tr><td style="width: 25%;"><a href="orangejuice.html">orangejuice</a></td>
+<td>Orange juice data</td></tr>
+<tr><td style="width: 25%;"><a href="orangejuice2.html">orangejuice2</a></td>
+<td>Orange juice data - Part 2</td></tr>
+<tr><td style="width: 25%;"><a href="pareto.chart.html">pareto.chart</a></td>
+<td>Pareto chart</td></tr>
+<tr><td style="width: 25%;"><a href="pcmanufact.html">pcmanufact</a></td>
+<td>Personal computer manufacturer data</td></tr>
+<tr><td style="width: 25%;"><a href="pistonrings.html">pistonrings</a></td>
+<td>Piston rings data</td></tr>
+<tr><td style="width: 25%;"><a href="cusum.html">plot.cusum.qcc</a></td>
+<td>Cusum chart</td></tr>
+<tr><td style="width: 25%;"><a href="ewma.html">plot.ewma.qcc</a></td>
+<td>EWMA chart</td></tr>
+<tr><td style="width: 25%;"><a href="mqcc.html">plot.mqcc</a></td>
+<td>Multivariate Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="pareto.chart.html">plot.pareto.chart</a></td>
+<td>Pareto chart</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.html">plot.qcc</a></td>
+<td>Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="cusum.html">print.cusum.qcc</a></td>
+<td>Cusum chart</td></tr>
+<tr><td style="width: 25%;"><a href="ewma.html">print.ewma.qcc</a></td>
+<td>EWMA chart</td></tr>
+<tr><td style="width: 25%;"><a href="mqcc.html">print.mqcc</a></td>
+<td>Multivariate Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="pareto.chart.html">print.pareto.chart</a></td>
+<td>Pareto chart</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.html">print.qcc</a></td>
+<td>Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="process.capability.html">process.capability</a></td>
+<td>Process capability analysis</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.html">qcc</a></td>
+<td>Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.groups.html">qcc.groups</a></td>
+<td>Grouping data based on a sample indicator</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.options.html">qcc.options</a></td>
+<td>Set or return options for the 'qcc' package.</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.overdispersion.test.html">qcc.overdispersion.test</a></td>
+<td>Overdispersion test for binomial and poisson data</td></tr>
+<tr><td style="width: 25%;"><a href="stats.c.html">sd.c</a></td>
+<td>Functions to plot Shewhart c chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.g.html">sd.g</a></td>
+<td>Statistics used in computing and drawing a Shewhart g chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.np.html">sd.np</a></td>
+<td>Statistics used in computing and drawing a Shewhart np chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.p.html">sd.p</a></td>
+<td>Statistics used in computing and drawing a Shewhart p chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.R.html">sd.R</a></td>
+<td>Statistics used in computing and drawing a Shewhart R chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.S.html">sd.S</a></td>
+<td>Functions to plot Shewhart S chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.u.html">sd.u</a></td>
+<td>Statistics used in computing and drawing a Shewhart u chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.html">sd.xbar</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.one.html">sd.xbar.one</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart for one-at-time data</td></tr>
+<tr><td style="width: 25%;"><a href="shewhart.rules.html">shewhart.rules</a></td>
+<td>Functions specifying rules for Shewhart charts</td></tr>
+<tr><td style="width: 25%;"><a href="stats.c.html">stats.c</a></td>
+<td>Functions to plot Shewhart c chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.g.html">stats.g</a></td>
+<td>Statistics used in computing and drawing a Shewhart g chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.np.html">stats.np</a></td>
+<td>Statistics used in computing and drawing a Shewhart np chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.p.html">stats.p</a></td>
+<td>Statistics used in computing and drawing a Shewhart p chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.R.html">stats.R</a></td>
+<td>Statistics used in computing and drawing a Shewhart R chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.S.html">stats.S</a></td>
+<td>Functions to plot Shewhart S chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.T2.html">stats.T2</a></td>
+<td>Statistics used in computing and drawing the Hotelling T^2 chart for subgrouped data</td></tr>
+<tr><td style="width: 25%;"><a href="stats.T2.single.html">stats.T2.single</a></td>
+<td>Statistics used in computing and drawing the Hotelling T^2 chart for individual observations data</td></tr>
+<tr><td style="width: 25%;"><a href="stats.u.html">stats.u</a></td>
+<td>Statistics used in computing and drawing a Shewhart u chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.html">stats.xbar</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart</td></tr>
+<tr><td style="width: 25%;"><a href="stats.xbar.one.html">stats.xbar.one</a></td>
+<td>Statistics used in computing and drawing a Shewhart xbar chart for one-at-time data</td></tr>
+<tr><td style="width: 25%;"><a href="cusum.html">summary.cusum.qcc</a></td>
+<td>Cusum chart</td></tr>
+<tr><td style="width: 25%;"><a href="ewma.html">summary.ewma.qcc</a></td>
+<td>EWMA chart</td></tr>
+<tr><td style="width: 25%;"><a href="mqcc.html">summary.mqcc</a></td>
+<td>Multivariate Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="qcc.html">summary.qcc</a></td>
+<td>Quality Control Charts</td></tr>
+<tr><td style="width: 25%;"><a href="shewhart.rules.html">violating.runs</a></td>
+<td>Functions specifying rules for Shewhart charts</td></tr>
+</table>
+</body></html>

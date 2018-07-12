@@ -1,0 +1,35 @@
+qicharts2 0.4.0
+===============
+* Fix quoted variables.
+* Darker CL background.
+* Add point.size argument.
+* Improved notes and parts labels.
+
+qicharts2 0.3.0
+===============
+* Skip more tests that generate noLD issues on CRAN.
+* Allow NULL as title argument to suppress chart title.
+* Add strip.horizontal argument to qic().
+
+qicharts2 0.2.3
+===============
+* Skip tests that generate noLD issues on CRAN.
+
+qicharts2 0.2.2
+===============
+* Fix time zone warnings on Windows environment.
+
+qicharts2 0.2.1
+===============
+* Fix x axis error when dates crosses summer/winter time.
+
+qicharts2 0.2.0
+===============
+* Import dplyr >= 0.7.0
+* Fix calculation of control limits for xbar chart in qic() with freeze or 
+  exclude argument.
+* C chart ignores agg.fun argument.
+
+qicharts2 0.1.1
+===============
+* First release.

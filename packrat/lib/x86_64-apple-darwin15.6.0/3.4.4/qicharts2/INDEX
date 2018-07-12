@@ -1,0 +1,10 @@
+cabg                    Coronary artery bypass graft operations
+cdi                     Clostridium difficile infections
+gtt                     Patient harm indentified using the Global
+                        Trigger Tool
+hospital_infections     Hospital acquired infections
+nhs_accidents           NHS accidents
+paretochart             Paretochart
+qic                     Statistical process control charts.
+qicharts2               'qicharts2' package
+summary.qic             Prints summary of a qic object

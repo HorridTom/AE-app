@@ -1,0 +1,35 @@
+Package: nhsAEscraper
+Type: Package
+Title: Download and collate Accident and Emergency data from NHS
+    England's website
+Version: 0.0.0.9002
+Authors@R: as.person(c( "Thomas Woodcock
+    <thomas.woodcock99@imperial.ac.uk> [aut, cre]" ))
+Description: NHS England publishes monthly aggregated data on volume
+    and 4 hour target performance by acute Trust, in the form of MS
+    Excel workbooks. Such a format does not facilitate statistical
+    analysis, especially over time. This package scrapes the data and
+    organises it into a coherent structure.
+License: file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Suggests: testthat
+Imports: dplyr, stringr, readxl, magrittr, tibble, lubridate, zoo,
+    compare (>= 0.2-6), httr
+Author: Thomas Woodcock [aut, cre]
+Maintainer: Thomas Woodcock <thomas.woodcock99@imperial.ac.uk>
+Built: R 3.4.4; ; 2018-06-19 11:15:12 UTC; unix
+RemoteType: github
+RemoteHost: https://api.github.com
+RemoteRepo: nhsAEscraper
+RemoteUsername: HorridTom
+RemoteRef: master
+RemoteSha: df62645bec6055bc9f9c25bfc9b3a563d18ba000
+GithubRepo: nhsAEscraper
+GithubUsername: HorridTom
+GithubRef: master
+GithubSHA1: df62645bec6055bc9f9c25bfc9b3a563d18ba000
+InstallAgent: packrat 0.4.9.3
+InstallSource: github
+Hash: 216d38513655dd6f179745785536a142
