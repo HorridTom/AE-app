@@ -52,7 +52,9 @@ ui <- dashboardPage(
                                 box(plotOutput("edPerfPlot"), width = NULL),
                                 box(plotOutput("edVolPlot"), width = NULL)
                                 )
-                         )
+                         ),
+               downloadButton('downloadPerfPlot', 'Download Performance Chart'),
+               downloadButton('downloadVolPlot', 'Download Volume Chart')
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
@@ -165,8 +167,8 @@ server <- function(input, output) {
     )
   })
 
-   output$edPerfPlot <- renderPlot({
-     if (length(input$trust) != 0) {
+  edPerfPlotInput <- function() {
+    if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
       measure <- "All"
       if(input$t1_only_checkbox) {measure <- "Typ1"}
@@ -175,21 +177,47 @@ server <- function(input, output) {
                                 x_title = "Month", measure = measure,
                                 r1_col = r1_col, r2_col=r2_col),
                error=function(e) NULL)
-     }
+    }
+  }
+  
+  output$edPerfPlot <- renderPlot({
+    print(edPerfPlotInput())
+  })
+  
+  edVolPlotInput <- function() {
+    if (length(input$trust) != 0) {
+      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
+      measure <- "All"
+      if(input$t1_only_checkbox) {measure <- "Typ1"}
+      tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+                           brk.date = perf.brk.date, date.col = 'Month_Start',
+                           x_title = "Month", measure = measure,
+                           r1_col = r1_col, r2_col=r2_col),
+               error=function(e) NULL)
+    }
+  }
+  
+  output$edVolPlot <- renderPlot({
+    print(edVolPlotInput())
+  })
+  
+  
+  output$downloadPerfPlot <- downloadHandler(
+    filename = "ShinyPerfPlot.png",
+    content = function(file) {
+      png(file, res = NA, width = 777, height = 480)
+      print(edPerfPlotInput())
+      dev.off()
     })
-   
-   output$edVolPlot <- renderPlot({
-     if (length(input$trust) != 0) {
-       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
-       measure <- "All"
-       if(input$t1_only_checkbox) {measure <- "Typ1"}
-       tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
-                            brk.date = perf.brk.date, date.col = 'Month_Start',
-                            x_title = "Month", measure = measure,
-                            r1_col = r1_col, r2_col=r2_col),
-                error=function(e) NULL)
-     }
-   })
+  
+  output$downloadVolPlot <- downloadHandler(
+    filename = "ShinyVolPlot.png",
+    content = function(file) {
+      png(file, res = NA, width = 777, height = 480)
+      print(edVolPlotInput())
+      dev.off()
+    })
+
 }
 
 # Run the application 
