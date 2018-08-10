@@ -38,8 +38,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3", typeTitle) { 
-
+                             r1_col = "orange", r2_col = "steelblue3") { 
+  
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
@@ -80,6 +80,8 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
   # data for target line
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
+  
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "")
   
   if(plot.chart == TRUE) {
     p <- format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
@@ -149,8 +151,8 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  #require(cowplot)
-  #require(gridGraphics)
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "")
+  
   if(plot.chart == TRUE) {
     p <- format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
