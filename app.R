@@ -2,6 +2,8 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(stringr)
+library(cowplot) 
+library(gridGraphics) 
 
 library(nhsAEscraper)
 
@@ -53,7 +55,7 @@ ui <- dashboardPage(
                                 box(plotOutput("edVolPlot"), width = NULL)
                                 )
                          ),
-               downloadButton('downloadPerfPlot', 'Download Performance Chart'),
+               downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
                downloadButton('downloadVolPlot', 'Download Volume Chart')
         ),
         tabItem(tabName = "understanding",
@@ -171,11 +173,15 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
       measure <- "All"
-      if(input$t1_only_checkbox) {measure <- "Typ1"}
+      typeTitle <- NULL  
+      if(input$t1_only_checkbox) {
+       measure <- "Typ1"
+       typeTitle <- "\n(Type 1 departments only)"
+      } 
       tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
-                                r1_col = r1_col, r2_col=r2_col),
+                                r1_col = r1_col, r2_col=r2_col, typeTitle = typeTitle), 
                error=function(e) NULL)
     }
   }
@@ -186,13 +192,17 @@ server <- function(input, output) {
   
   edVolPlotInput <- function() {
     if (length(input$trust) != 0) {
-      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
+      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'])
       measure <- "All"
-      if(input$t1_only_checkbox) {measure <- "Typ1"}
+      typeTitle <- NULL  
+      if(input$t1_only_checkbox) {
+       measure <- "Typ1"
+       typeTitle <- "\n(Type 1 departments only)"
+      } 
       tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
                            x_title = "Month", measure = measure,
-                           r1_col = r1_col, r2_col=r2_col),
+                           r1_col = r1_col, r2_col=r2_col, typeTitle = typeTitle), 
                error=function(e) NULL)
     }
   }
