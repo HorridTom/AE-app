@@ -202,11 +202,11 @@ server <- function(input, output) {
     print(edVolPlotInput())
   })
   
-  
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
   output$downloadPerfPlot <- downloadHandler( 
     filename = function() {
-      paste(c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']),", Performance Plot, ",perf.start.date," - ",perf.end.date,".png")
+      paste(gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))
+            ,"_PerfPlot_",perf.start.date,"/",perf.end.date,".png")
     },
     content = function(file){
       png(file, width = 10, height = 5.5, units = 'in', res = 300) 
@@ -216,7 +216,8 @@ server <- function(input, output) {
   
   output$downloadVolPlot <- downloadHandler(
     filename = function() {
-      paste(c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']),", Volume Plot, ",perf.start.date," - ",perf.end.date,".png")
+      paste(gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))
+            ,"_VolPlot_",perf.start.date,"/",perf.end.date,".png")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
