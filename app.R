@@ -2,8 +2,6 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(stringr)
-library(cowplot) 
-library(gridGraphics) 
 
 library(nhsAEscraper)
 
