@@ -54,7 +54,7 @@ ui <- dashboardPage(
                                 )
                          ),
                downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
-               downloadButton('downloadVolPlot', 'Download Volume Chart')
+               downloadButton('downloadVolPlot', 'Download Attendances Chart')
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
