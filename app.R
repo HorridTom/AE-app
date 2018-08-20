@@ -188,7 +188,6 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1,1])
       measure <- "All"
-      typeTitle <- NULL  
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
@@ -206,7 +205,8 @@ server <- function(input, output) {
   output$downloadPerfPlot <- downloadHandler( 
     filename = function() {
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
-            "_PerfPlot_",perf.start.date,"/",perf.end.date,".png", sep = "")
+            "_PerfPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file){
       png(file, width = 10, height = 5.5, units = 'in', res = 300) 
@@ -217,7 +217,8 @@ server <- function(input, output) {
   output$downloadVolPlot <- downloadHandler(
     filename = function() {
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
-            "_AttendPlot_",perf.start.date,"/",perf.end.date,".png", sep = "")
+            "_AttendPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
