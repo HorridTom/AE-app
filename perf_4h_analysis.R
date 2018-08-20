@@ -80,7 +80,7 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   # data for target line
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "")
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
   
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
@@ -148,7 +148,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "")
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
   
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
