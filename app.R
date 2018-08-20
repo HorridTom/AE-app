@@ -205,8 +205,8 @@ server <- function(input, output) {
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
   output$downloadPerfPlot <- downloadHandler( 
     filename = function() {
-      paste(gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))
-            ,"_PerfPlot_",perf.start.date,"/",perf.end.date,".png")
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+            "_PerfPlot_",perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file){
       png(file, width = 10, height = 5.5, units = 'in', res = 300) 
@@ -216,8 +216,8 @@ server <- function(input, output) {
   
   output$downloadVolPlot <- downloadHandler(
     filename = function() {
-      paste(gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))
-            ,"_VolPlot_",perf.start.date,"/",perf.end.date,".png")
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+            "_AttendPlot_",perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
