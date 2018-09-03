@@ -3,6 +3,7 @@ library(shinydashboard)
 library(tidyverse)
 library(stringr)
 
+###master branch 
 library(nhsAEscraper)
 
 Sys.setenv(TZ='Europe/London')
@@ -146,7 +147,13 @@ server <- function(input, output) {
   }
   
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name')]
-  provLookup <- provLookup %>% arrange(Prov_Name)
+  provLookup <- provLookup %>% arrange(Prov_Name) %>%
+    add_row(Prov_Name = "Region: London", Prov_Code = "L") %>%
+    add_row(Prov_Name = "Region: Midlands", Prov_Code = "M") %>%
+    add_row(Prov_Name = "Region: North of England", Prov_Code = "N") %>%
+    add_row(Prov_Name = "Region: South of England", Prov_Code = "S") %>%
+    add_row(Prov_Name = "Whole of England", Prov_Code = "E")
+    
   orgs <- provLookup$Prov_Code
   orgNames <- provLookup$Prov_Name
   
@@ -169,7 +176,7 @@ server <- function(input, output) {
 
   edPerfPlotInput <- function() {
     if (length(input$trust) != 0) {
-      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
+      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1,1])
       measure <- "All"
       if(input$t1_only_checkbox) {measure <- "Typ1"} 
       tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,

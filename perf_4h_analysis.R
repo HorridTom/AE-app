@@ -7,6 +7,7 @@ library(zoo)
 
 make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
+  df <- add_regional_rows(df)
   df <- df %>% filter(Prov_Code %in% prov_codes)
   
   # Make new variables
@@ -14,7 +15,7 @@ make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
                       Att_Typ2_NotBr = Att_Typ2 - Att_Typ2_Br,
                       Att_Typ3_NotBr = Att_Typ3 - Att_Typ3_Br,
                       Att_All_NotBr = Att_All - Att_All_Br,
-                      E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D)
+                      E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D) 
   
   perf_series <- switch(measure,
          All = df %>%
@@ -31,6 +32,44 @@ make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
     arrange(Month_Start)
 }
+
+#prov_codes are made up so London=L, Midlands=M, North=N, South=S
+add_regional_rows <- function(df){
+  
+  dfEng <- df %>%
+    group_by(Month_Start) %>%
+    summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
+              Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
+              Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
+              Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
+              E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
+              E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
+              E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
+    mutate(Prov_Name = "Whole of England", Prov_Code = "E")
+  
+  dfReg <- df %>%
+    group_by(Region, Month_Start) %>%
+    summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
+              Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
+              Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
+              Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
+              E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
+              E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
+              E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
+    mutate(Prov_Name = ifelse(str_detect(Region, coll("london",ignore_case = T)), "Region: London", 
+                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Region: Midlands", 
+                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"Region: North of Endland", 
+                                            "Region: South of England")))) %>%
+    mutate(Prov_Code = ifelse(Prov_Name == "Region: London", "L", 
+                              ifelse(Prov_Name == "Region: Midlands", "M", 
+                                     ifelse(Prov_Name == "Region: North of Endland", "N", "S"))))
+  
+  
+  dfList <- list(df, dfReg, dfEng)
+  df <- bind_rows(dfList)
+  
+}
+
 
 plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
