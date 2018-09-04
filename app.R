@@ -114,7 +114,6 @@ ui <- dashboardPage(
                p("In the near future we hope to implement the following new features:"),
                tags$ol(
                  tags$li("Regional and national aggregated analysis"),
-                 tags$li("Download buttons to make it easy to save the plots (right click and save as for now)"),
                  tags$li("Improved look and feel"),
                  tags$li("Distinct periods for control limits, to better reflect shifts in the measures")
                )
