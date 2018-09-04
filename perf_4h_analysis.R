@@ -5,10 +5,10 @@ library(ggplot2)
 library(scales)
 library(zoo)
 
-make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
+make_perf_series <- function(df, code = "RQM", measure = "All", level) {
   
-  df <- add_regional_rows(df)
-  df <- df %>% filter(Prov_Code %in% prov_codes)
+  df <- regional_analysis(df, level)
+  df <- filter(df, Code == code)
   
   # Make new variables
   df <- df %>% mutate(Att_Typ1_NotBr = Att_Typ1 - Att_Typ1_Br,
@@ -19,13 +19,13 @@ make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
   
   perf_series <- switch(measure,
          All = df %>%
-           select(Prov_Code, Month_Start, Region, Prov_Name,
+           select(Code, Month_Start, Name,
                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All),
          Typ1 = df %>%
-           select(Prov_Code, Month_Start, Region, Prov_Name,
+           select(Code, Month_Start, Name,
                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total = Att_Typ1),
          Adm = df %>%
-           select(Prov_Code, Month_Start, Region, Prov_Name,
+           select(Code, Month_Start, Name,
                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED)
            )
   perf_series %>% mutate(Performance = Within_4h / Total) %>%
@@ -33,57 +33,67 @@ make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
     arrange(Month_Start)
 }
 
-#prov_codes are made up so London=L, Midlands=M, North=N, South=S
-add_regional_rows <- function(df){
+
+regional_analysis <- function(df, level){
   
-  dfEng <- df %>%
-    group_by(Month_Start) %>%
-    summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
-              Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
-              Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
-              Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
-              E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
-              E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
-              E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
-    mutate(Prov_Name = "Whole of England", Prov_Code = "E")
+  if(level == "National"){
+    Name <- "Country"
+    Code <- "Nat_Code"
+  }else if(level == "Regional"){
+    Name <- "Region"
+    Code <- "Reg_Code"
+  }else{
+    Name <- "Prov_Name"
+    Code <- "Prov_Code"
+  }
   
-  dfReg <- df %>%
-    group_by(Region, Month_Start) %>%
-    summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
-              Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
-              Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
-              Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
-              E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
-              E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
-              E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
-    mutate(Prov_Name = ifelse(str_detect(Region, coll("london",ignore_case = T)), "Region: London", 
-                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Region: Midlands", 
-                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"Region: North of Endland", 
-                                            "Region: South of England")))) %>%
-    mutate(Prov_Code = ifelse(Prov_Name == "Region: London", "L", 
-                              ifelse(Prov_Name == "Region: Midlands", "M", 
-                                     ifelse(Prov_Name == "Region: North of Endland", "N", "S"))))
+  Name <- as.name(Name)
+  Code <- as.name(Code)
   
-  
-  dfList <- list(df, dfReg, dfEng)
-  df <- bind_rows(dfList)
+    df <- df %>%
+      group_by(!!Name, !!Code, Month_Start) %>%
+      summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
+                Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
+                Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
+                Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
+                E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
+                E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
+                E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
+      ungroup() %>%
+      mutate(Name = !!Name, Code = !!Code)
   
 }
 
 
-plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
+#Reg_codes are made up so London=L, Midlands=M, North=N, South=S
+clean_region_col <- function(df){
+  
+  df <- df %>%
+    mutate(Region = ifelse(str_detect(Region, coll("london",ignore_case = T)), "Region: London", 
+                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Region: Midlands", 
+                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"Region: North of England", 
+                                            "Region: South of England"))),
+           Reg_Code = ifelse(Region == "Region: London", "L", 
+                             ifelse(Region == "Region: Midlands", "M", 
+                                    ifelse(Region == "Region: North of England", "N", "S"))), 
+           Country = "Country: England", Nat_Code = "E")
+}
+
+
+plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3") { 
+                             r1_col = "orange", r2_col = "steelblue3",
+                             level = level) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
-  df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
+  df <- make_perf_series(df = df, code = code, measure = measure, level = level)
   
   # if no pr_name passed, lookup full name of provider
-  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Prov_Name)}
+  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
   
   # convert arguments to dates
   st.dt <- as.Date(start.date, tz = "Europe/London")
@@ -137,19 +147,19 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
 }
 
 
-plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
+plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3") { 
+                             r1_col = "orange", r2_col = "steelblue3", level = "Provider") { 
   
   cht_title = "Number of A&E attendances"
   
-  df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
+  df <- make_perf_series(df = df, code = code, measure = measure, level = level)
   
   # if no pr_name passed, lookup full name of provider
-  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Prov_Name)}
+  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
   
   # convert arguments to dates and round to nearest quarter
   st.dt <- as.Date(start.date, tz = "Europe/London")

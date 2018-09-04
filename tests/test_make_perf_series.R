@@ -7,12 +7,12 @@ load('test-data/perf_data_colnames.rda')
 #p4h <- make_p4h_from_sitreps(AE_data_test)
 
 testthat::test_that("Created timeseries dataset is a dataframe",{
-  ps_rqm_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                          measure = 'All')
-  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                     measure = 'Typ1')
-  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                     measure = 'Adm')
+  ps_rqm_all_all <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                          measure = 'All', level = "Provider")
+  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                     measure = 'Typ1', level = "Provider")
+  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                     measure = 'Adm', level = "Provider")
   
   testthat::expect_is(ps_rqm_all_all, 'data.frame')
   testthat::expect_is(ps_rqm_all_typ1, 'data.frame')
@@ -20,12 +20,12 @@ testthat::test_that("Created timeseries dataset is a dataframe",{
 })
 
 testthat::test_that("Results for selected months in performance series for Chelsea and Westminster are correct",{
-  ps_rqm_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                            measure = 'All')
-  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                             measure = 'Typ1')
-  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RQM'),
-                                            measure = 'Adm')
+  ps_rqm_all_all <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                            measure = 'All', level = "Provider")
+  ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                             measure = 'Typ1', level = "Provider")
+  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
+                                            measure = 'Adm', level = "Provider")
   
   # Test that we get the correct results for Chelsea and Westminster (RQM)
   # in April 2017, for all attendances
@@ -72,12 +72,12 @@ testthat::test_that("Results for selected months in performance series for Chels
 })
 
 testthat::test_that("Results for selected months in performance series for Imperial are correct",{
-  ps_ryj_all_all <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
-                                     measure = 'All')
-  ps_ryj_all_typ1 <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
-                                      measure = 'Typ1')
-  ps_ryj_adm_all <- make_perf_series(df = AE_data_test, prov_codes = c('RYJ'),
-                                     measure = 'Adm')
+  ps_ryj_all_all <- make_perf_series(df = AE_data_test, code = 'RYJ',
+                                     measure = 'All', level = "Provider")
+  ps_ryj_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RYJ',
+                                      measure = 'Typ1', level = "Provider")
+  ps_ryj_adm_all <- make_perf_series(df = AE_data_test, code = 'RYJ',
+                                     measure = 'Adm', level = "Provider")
   
   # Test that we get the correct results for Imperial (RYJ)
   # in September 2017, for all attendances

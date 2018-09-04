@@ -17,6 +17,7 @@ r2_col = "steelblue3"
 urls_of_data <- NULL
 if(update_data) {urls_of_data <- getAEdata_urls_monthly()}
 AE_Data <- getAE_data(update_data = update_data, directory = 'data-raw')
+AE_Data <- clean_region_col(AE_Data)
 assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
@@ -142,20 +143,16 @@ server <- function(input, output) {
           full.names = TRUE)
       )
     AE_Data <- getAE_data(update_data = TRUE, directory = 'data-raw')
+    AE_Data <- clean_region_col(AE_Data)
     assign("AE_Data", AE_Data, envir = .GlobalEnv)
     assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
   }
   
-  provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name')]
-  provLookup <- provLookup %>% arrange(Prov_Name) %>%
-    add_row(Prov_Name = "Region: London", Prov_Code = "L") %>%
-    add_row(Prov_Name = "Region: Midlands", Prov_Code = "M") %>%
-    add_row(Prov_Name = "Region: North of England", Prov_Code = "N") %>%
-    add_row(Prov_Name = "Region: South of England", Prov_Code = "S") %>%
-    add_row(Prov_Name = "Whole of England", Prov_Code = "E")
+  provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
+  provLookup <- provLookup %>% arrange(Prov_Name) 
     
-  orgs <- provLookup$Prov_Code
   orgNames <- provLookup$Prov_Name
+  regNames <- levels(factor(provLookup$Region))
   
   perf.start.date <- "2015-07-01"
   perf.end.date <- lubridate::today()
@@ -165,9 +162,15 @@ server <- function(input, output) {
     sidebarMenu(id = "tabs",
       menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome")),
       conditionalPanel(condition = "input.tabs === 'analysis'",
-                       selectInput("trust", "Choose Trust", orgNames),
+                       radioButtons("level", "Select Analysis Level", choices = c("National", "Regional", "Provider")),
                        checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
                                      value = FALSE)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider'",
+                       selectInput("trust", "Choose Provider", orgNames)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional'",
+                       selectInput("region", "Choose Region", regNames)
       ),
       menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
       menuItem("Development", tabName = "dev", icon = icon('road'))
@@ -176,13 +179,24 @@ server <- function(input, output) {
 
   edPerfPlotInput <- function() {
     if (length(input$trust) != 0) {
-      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1,1])
+      level <- input$level
+      if(level == "Provider"){
+        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]]
+      }else if(level == "Regional"){
+        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][[1,1]]
+      }else{
+        #for use when there is more than one country
+        #code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][[1,1]]
+        code <- "E"
+      }
+      
       measure <- "All"
       if(input$t1_only_checkbox) {measure <- "Typ1"} 
-      tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+      tryCatch(plot_performance(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
-                                r1_col = r1_col, r2_col=r2_col), 
+                                r1_col = r1_col, r2_col=r2_col,
+                                level = level), 
                error=function(e) NULL)
     }
   }
@@ -193,13 +207,25 @@ server <- function(input, output) {
   
   edVolPlotInput <- function() {
     if (length(input$trust) != 0) {
-      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1,1])
+      level <- input$level
+      if(level == "Provider"){
+        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]]
+      }else if(level == "Regional"){
+        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][[1,1]]
+      }else{
+        #for use when there is more than one country
+        #code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][[1,1]]
+        code <- "E"
+      }
+      
       measure <- "All"
+      level <- input$level
       if(input$t1_only_checkbox) {measure <- "Typ1"}
-      tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
+      tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
                            x_title = "Month", measure = measure,
-                           r1_col = r1_col, r2_col=r2_col), 
+                           r1_col = r1_col, r2_col=r2_col,
+                           level = level), 
                error=function(e) NULL)
     }
   }

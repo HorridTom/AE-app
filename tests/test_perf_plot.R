@@ -5,10 +5,10 @@ source("../spc_rules.R")
 load('test-data/AE_data_test.rda')
 
 testthat::test_that("Performance plot is correct for April 2017 for Chelsea and Westminster",{
-  ppchart_all <- plot_performance(df = AE_data_test, prov_codes = c('RQM'), brk.date = NULL, measure = 'All',
-                                  start.date = "2014-01-01", end.date = "2017-06-30")
-  ppchart_typ1 <- plot_performance(df = AE_data_test, prov_codes = c('RQM'), brk.date = NULL, measure = 'Typ1',
-                                   start.date = "2014-01-01", end.date = "2017-06-30")
+  ppchart_all <- plot_performance(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'All',
+                                  start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider")
+  ppchart_typ1 <- plot_performance(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'Typ1',
+                                   start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider")
   
   # Check output is a ggplot
   testthat::expect_is(ppchart_all, "ggplot")
@@ -47,9 +47,9 @@ testthat::test_that("Performance plot is correct for April 2017 for Chelsea and 
 })
 
 testthat::test_that("Volume plot is correct for April 2017 for Chelsea and Westminster",{
-  vchart_all <- plot_volume(df = AE_data_test, prov_codes = c('RQM'), brk.date = NULL, measure = 'All',
+  vchart_all <- plot_volume(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'All',
                             start.date = "2014-01-01", end.date = "2017-06-30")
-  vchart_typ1 <- plot_volume(df = AE_data_test, prov_codes = c('RQM'), brk.date = NULL, measure = 'Typ1',
+  vchart_typ1 <- plot_volume(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'Typ1',
                              start.date = "2014-01-01", end.date = "2017-06-30")
   
   # Check output is a ggplot
