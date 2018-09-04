@@ -53,8 +53,8 @@ ui <- dashboardPage(
                                 box(plotOutput("edVolPlot"), width = NULL)
                                 )
                          ),
-               downloadButton('downloadPerfPlot', 'Download Performance Chart'),
-               downloadButton('downloadVolPlot', 'Download Volume Chart')
+               downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
+               downloadButton('downloadVolPlot', 'Download Attendances Chart')
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
@@ -171,11 +171,11 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
       measure <- "All"
-      if(input$t1_only_checkbox) {measure <- "Typ1"}
+      if(input$t1_only_checkbox) {measure <- "Typ1"} 
       tryCatch(plot_performance(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
-                                r1_col = r1_col, r2_col=r2_col),
+                                r1_col = r1_col, r2_col=r2_col), 
                error=function(e) NULL)
     }
   }
@@ -186,13 +186,13 @@ server <- function(input, output) {
   
   edVolPlotInput <- function() {
     if (length(input$trust) != 0) {
-      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]])
+      pr <- c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1,1])
       measure <- "All"
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       tryCatch(plot_volume(AE_Data, prov_codes = pr, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
                            x_title = "Month", measure = measure,
-                           r1_col = r1_col, r2_col=r2_col),
+                           r1_col = r1_col, r2_col=r2_col), 
                error=function(e) NULL)
     }
   }
@@ -201,24 +201,33 @@ server <- function(input, output) {
     print(edVolPlotInput())
   })
   
-  
-  output$downloadPerfPlot <- downloadHandler(
-    filename = "ShinyPerfPlot.png",
-    content = function(file) {
-      png(file, res = NA, width = 777, height = 480)
+  # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
+  output$downloadPerfPlot <- downloadHandler( 
+    filename = function() {
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+            "_PerfPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
+    },
+    content = function(file){
+      png(file, width = 10, height = 5.5, units = 'in', res = 300) 
       print(edPerfPlotInput())
       dev.off()
     })
   
   output$downloadVolPlot <- downloadHandler(
-    filename = "ShinyVolPlot.png",
+    filename = function() {
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+            "_AttendPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
+    },
     content = function(file) {
-      png(file, res = NA, width = 777, height = 480)
+      png(file, width = 10, height = 5, units = 'in', res = 300) 
       print(edVolPlotInput())
       dev.off()
     })
 
 }
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)

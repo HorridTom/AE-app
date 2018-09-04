@@ -32,14 +32,13 @@ make_perf_series <- function(df, prov_codes = c("RQM"), measure = "All") {
     arrange(Month_Start)
 }
 
-
 plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3") {
-
+                             r1_col = "orange", r2_col = "steelblue3") { 
+  
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
   df <- make_perf_series(df = df, prov_codes = prov_codes, measure = measure)
@@ -81,16 +80,20 @@ plot_performance <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start'
   # data for target line
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
+  
   if(plot.chart == TRUE) {
-    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = pr_name) +
-      labs(x= x_title, y="Percentage within 4 hours") +
+      ggtitle(cht_title, subtitle = paste(pr_name, typeTitle)) +  
+      labs(x= x_title, y="Percentage within 4 hours", 
+           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
       geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
+    
   } else {df}
 }
 
@@ -100,7 +103,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3") {
+                             r1_col = "orange", r2_col = "steelblue3") { 
   
   cht_title = "Number of A&E attendances"
   
@@ -136,6 +139,7 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
+
   }
   
   # chart y limit
@@ -144,17 +148,20 @@ plot_volume <- function(df, prov_codes = c("RBZ"), date.col = 'Month_Start',
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
+  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
+  
   if(plot.chart == TRUE) {
-    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = pr_name) +
-      labs(x= x_title, y="Number of attendances") +
+      ggtitle(cht_title, subtitle = paste(pr_name, typeTitle)) + 
+      labs(x= x_title, y="Number of attendances",
+           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         breaks = seq(ylimlow, ylimhigh, 1000*round((ylimhigh-ylimlow)/8/1000)))
+                         breaks = seq(ylimlow, ylimhigh, 1000*round((ylimhigh-ylimlow)/8/1000))) 
+    
   } else {df}
 }
-
 
 format_control_chart <- function(cht, r1_col, r2_col) {
   point_colours <- c("Rule 1" = r1_col, "Rule 2" = r2_col, "None" = "black")
@@ -164,12 +171,13 @@ format_control_chart <- function(cht, r1_col, r2_col) {
     geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
     geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
     geom_point(aes(colour = highlight), size = 2) +
-    scale_color_manual("Rule triggered", values = point_colours) +
+    scale_color_manual("Rule triggered*", values = point_colours) + 
     theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_line(colour = "grey80"),
               panel.grid.minor = element_blank(), panel.background = element_blank(),
               axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
               axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
               plot.title = element_text(size = 20, hjust = 0),
               plot.subtitle = element_text(size = 16, face = "italic"),
-              axis.line = element_line(colour = "grey60"))
+              axis.line = element_line(colour = "grey60"),
+              plot.caption = element_text(size = 10, hjust = 0.5))
 }
