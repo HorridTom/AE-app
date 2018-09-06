@@ -235,11 +235,13 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       level <- input$level
       if(level == "Provider"){
-        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1]
+        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
+                       provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
       }else if(level == "Regional"){
-        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][1]
+        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
+                       provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
       }else{
-        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]#[[1,1]]
+        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
       }
       
       measure <- "All"
