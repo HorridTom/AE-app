@@ -3,8 +3,9 @@ library(shinydashboard)
 library(tidyverse)
 library(stringr)
 
-###master branch 
 library(nhsAEscraper)
+#devtools::install_github("ImogenConnorHelleur/nhsAEscraperScotland", ref = "just-provider-data")
+library(nhsAEscraperScotland)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
@@ -16,9 +17,14 @@ r2_col = "steelblue3"
 
 urls_of_data <- NULL
 if(update_data) {urls_of_data <- getAEdata_urls_monthly()}
-AE_Data <- getAE_data(update_data = update_data, directory = 'data-raw')
+AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw')
 AE_Data <- clean_region_col(AE_Data)
+AE_Data_Scot <- nhsAEscraperScotland::getAE_data(update_data = update_data, directory = 'data-raw')
+AE_Data_Scot <- standardise_data(AE_Data_Scot)
+
+AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
 assign("AE_Data", AE_Data, envir = .GlobalEnv)
+assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
 
 # Define UI
@@ -142,17 +148,28 @@ server <- function(input, output) {
           pattern = "*",
           full.names = TRUE)
       )
-    AE_Data <- getAE_data(update_data = TRUE, directory = 'data-raw')
+
+    AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw')
     AE_Data <- clean_region_col(AE_Data)
+    AE_Data_Scot <- nhsAEscraperScotland::getAE_data(update_data = update_data, directory = 'data-raw')
+    AE_Data_Scot <- standardise_data(AE_Data_Scot)
+    
+    AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
+    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     assign("AE_Data", AE_Data, envir = .GlobalEnv)
     assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
   }
   
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
   provLookup <- provLookup %>% arrange(Prov_Name) 
-    
-  orgNames <- provLookup$Prov_Name
-  regNames <- levels(factor(provLookup$Region))
+  
+  #ideally would want this to be generalised incase country names change
+  #but difficult to do in this form due to reactive content: orgNames <- provLookup[which(provLookup$Country == input$country),'Prov_Name']
+  orgNames <- provLookup[which(provLookup$Country == "Country: England"),'Prov_Name']
+  orgNamesScot <- provLookup[which(provLookup$Country == "Country: Scotland"),'Prov_Name']
+  regNames <- levels(factor(provLookup[which(provLookup$Country == "Country: England"),'Region']))
+  regNamesScot <- levels(factor(provLookup[which(provLookup$Country == "Country: Scotland"),'Region']))
+  couNames <- levels(factor(provLookup$Country))
   
   perf.start.date <- "2015-07-01"
   perf.end.date <- lubridate::today()
@@ -162,15 +179,24 @@ server <- function(input, output) {
     sidebarMenu(id = "tabs",
       menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome")),
       conditionalPanel(condition = "input.tabs === 'analysis'",
-                       radioButtons("level", "Select Analysis Level", choices = c("National", "Regional", "Provider")),
-                       checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
-                                     value = FALSE)
+                       selectInput("country", "Choose Country", couNames),
+                       radioButtons("level", "Select Analysis Level",choices = c("National", "Regional", "Provider"))
       ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider'",
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Country: England'" ,
                        selectInput("trust", "Choose Provider", orgNames)
       ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional'",
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Country: Scotland'" ,
+                       selectInput("trustScot", "Choose Provider", orgNamesScot)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Country: England'",
                        selectInput("region", "Choose Region", regNames)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Country: Scotland'",
+                       selectInput("regionScot", "Choose Board", regNamesScot)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'Country: England'",
+                       checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
+                                     value = FALSE)
       ),
       menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
       menuItem("Development", tabName = "dev", icon = icon('road'))
@@ -181,13 +207,13 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       level <- input$level
       if(level == "Provider"){
-        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]]
+        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
+                       provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
       }else if(level == "Regional"){
-        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][[1,1]]
+        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
+                       provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
       }else{
-        #for use when there is more than one country
-        #code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][[1,1]]
-        code <- "E"
+        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
       }
       
       measure <- "All"
@@ -209,13 +235,11 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       level <- input$level
       if(level == "Provider"){
-        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][[1,1]]
+        code <- provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1]
       }else if(level == "Regional"){
-        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][[1,1]]
+        code <- provLookup[which(provLookup$Region == input$region),'Reg_Code'][1]
       }else{
-        #for use when there is more than one country
-        #code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][[1,1]]
-        code <- "E"
+        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]#[[1,1]]
       }
       
       measure <- "All"

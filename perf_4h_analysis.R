@@ -4,6 +4,8 @@ library(qicharts2)
 library(ggplot2)
 library(scales)
 library(zoo)
+library(lubridate)
+library(wktmo)
 
 make_perf_series <- function(df, code = "RQM", measure = "All", level) {
   
@@ -17,20 +19,28 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level) {
                       Att_All_NotBr = Att_All - Att_All_Br,
                       E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D) 
   
+  #need option for if measure == NULL
   perf_series <- switch(measure,
          All = df %>%
-           select(Code, Month_Start, Name,
+           select(Code, Month_Start, Name, Nat_Code,
                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All),
          Typ1 = df %>%
-           select(Code, Month_Start, Name,
+           select(Code, Month_Start, Name, Nat_Code,
                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total = Att_Typ1),
          Adm = df %>%
-           select(Code, Month_Start, Name,
+           select(Code, Month_Start, Name, Nat_Code,
                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED)
            )
+  
+  
+  if(df[1,"Nat_Code"] == "S"){
+    perf_series <- weekly_to_monthly(perf_series)
+  }
+  
   perf_series %>% mutate(Performance = Within_4h / Total) %>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
     arrange(Month_Start)
+  
 }
 
 
@@ -50,8 +60,10 @@ regional_analysis <- function(df, level){
   Name <- as.name(Name)
   Code <- as.name(Code)
   
-    df <- df %>%
-      group_by(!!Name, !!Code, Month_Start) %>%
+  df <- df %>%
+      mutate(Name = !!Name, Code = !!Code)
+  dfReg <- df %>%
+      group_by(Name, Code, Month_Start) %>%
       summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
                 Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
                 Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
@@ -60,12 +72,12 @@ regional_analysis <- function(df, level){
                 E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
                 E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D)) %>%
       ungroup() %>%
-      mutate(Name = !!Name, Code = !!Code)
-  
+      mutate(Nat_Code = df[match(Code, df$Code), "Nat_Code"])
+
 }
 
 
-#Reg_codes are made up so London=L, Midlands=M, North=N, South=S
+#Reg_codes are made up so London=Lo, Midlands=Mi, North=No, South=So.  Make sure these aren't the same as Scottish Reg_Codes!
 clean_region_col <- function(df){
   
   df <- df %>%
@@ -73,12 +85,46 @@ clean_region_col <- function(df){
                               ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Region: Midlands", 
                                      ifelse(str_detect(Region, coll("north",ignore_case = T)),"Region: North of England", 
                                             "Region: South of England"))),
-           Reg_Code = ifelse(Region == "Region: London", "L", 
-                             ifelse(Region == "Region: Midlands", "M", 
-                                    ifelse(Region == "Region: North of England", "N", "S"))), 
+           Reg_Code = ifelse(Region == "Region: London", "Lo", 
+                             ifelse(Region == "Region: Midlands", "Mi", 
+                                    ifelse(Region == "Region: North of England", "No", "So"))), 
            Country = "Country: England", Nat_Code = "E")
 }
 
+#function to out Scottish data into NHS England format to be used in the app
+standardise_data <- function(df){
+  
+  df <- df %>%
+    select(-c(Att_8hr_Br, Perf_8hr, Att_12hr_Br, Perf_12hr)) %>%
+    rename(Region = Board_Name, Reg_Code = Board_Code, Att_All_Br = Att_4hr_Br, Perf_All = Perf_4hr, Month_Start = Week_End) %>%
+    mutate(Country = "Country: Scotland", Nat_Code = "S") %>%
+    mutate(Att_Typ1 = NA, Att_Typ2 = NA, Att_Typ3 = NA, Att_Typ1_Br = NA, Att_Typ2_Br = NA, Att_Typ3_Br = NA,
+           Perf_Typ1 = NA, E_Adm_Typ1 = NA, E_Adm_Typ2 = NA, E_Adm_Typ34 = NA, E_Adm_All_ED = NA, 
+           E_Adm_Not_ED = NA, E_Adm_All = NA, E_Adm_4hBr_D = NA, E_Adm_12hBr_D = NA) %>%
+    mutate(Region = gsub("NHS","Board: ", Region))
+  
+}
+
+weekly_to_monthly <- function(df){
+  
+  df <- mutate(df, Month_Start = as.Date(Month_Start))
+  datStart <- as.character(df$Month_Start[1] - weeks(1))  ###because dates are given as week_end
+  
+  Within_4h_df <- weekToMonth(df$Within_4h, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
+  Within_4h <- Within_4h_df$value
+  Greater_4h_df <- weekToMonth(df$Greater_4h, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
+  Greater_4h <- Greater_4h_df$value
+  Total_df <- weekToMonth(df$Total, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
+  Total <- Total_df$value
+  Month_Start <- Total_df$yearMonth
+  
+  dfMonthly <- data.frame(Month_Start, Within_4h, Greater_4h, Total)
+  dfMonthly <- dfMonthly %>%
+    mutate(Code = df$Code[1], Name = df$Name[1]) %>%
+    filter(row_number() != 1 & row_number() != nrow(dfMonthly)) %>% 
+    mutate(Month_Start = as.yearmon(Month_Start, tz = 'Europe/London'))
+  
+}
 
 plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2018-05-30",
