@@ -44,9 +44,33 @@ ui <- dashboardPage(
     ),
    dashboardSidebar(tags$style(".left-side, .main-sidebar {padding-top: 90px}"),
                     width = 300,
-      sidebarMenuOutput("menu")
+      sidebarMenu(id = "tabs", menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome"))
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis'",
+                       uiOutput("countryChoice"),
+                       uiOutput("radioBut")
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
+                       uiOutput("typ")
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'England'" ,
+                       uiOutput("orgChoice")
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Scotland'" ,
+                       uiOutput("orgChoiceScot")
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'England'",
+                       uiOutput("regChoice")
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Scotland'",
+                       uiOutput("regChoiceScot")
+      ),
+      sidebarMenu(id = "tabs",
+                  menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
+                  menuItem("Development", tabName = "dev", icon = icon('road'))
+      )
     ),
-   
+
    dashboardBody(
     # No CSS styling for now
     #tags$head(
@@ -163,47 +187,32 @@ server <- function(input, output) {
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
   provLookup <- provLookup %>% arrange(Prov_Name) 
   
-  #ideally would want this to be generalised incase country names change
-  #but difficult to do in this form due to reactive content: orgNames <- provLookup[which(provLookup$Country == input$country),'Prov_Name']
   orgNames <- provLookup[which(provLookup$Country == "England"),'Prov_Name']
   orgNamesScot <- provLookup[which(provLookup$Country == "Scotland"),'Prov_Name']
   regNames <- levels(factor(provLookup[which(provLookup$Country == "England"),'Region']))
   regNamesScot <- levels(factor(provLookup[which(provLookup$Country == "Scotland"),'Region']))
   couNames <- levels(factor(provLookup$Country))
   
+  #regLab <- reactive({ifelse(input$country == "England", "Regional","Board Level")})
+  #orgLab <- reactive({ifelse(input$country == "England", "Provider","Hospital")})
+  
   perf.start.date <- "2015-07-01"
   perf.end.date <- lubridate::today()
   perf.brk.date <- NULL
   
-  output$menu <- renderMenu({
-    sidebarMenu(id = "tabs",
-      menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome")),
-      conditionalPanel(condition = "input.tabs === 'analysis'",
-                       selectInput("country", "Choose Country", couNames),
-                       radioButtons("level", "Select Analysis Level", choices = c("National", "Regional", "Provider"))
-                                    #choiceValues = c("National", "Regional", "Provider"),
-                                    #choiceNames = c("National",regLab, "Hospital Level"))
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
-                       checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
-                                     value = FALSE)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'England'" ,
-                       selectInput("trust", "Choose Provider", orgNames)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Scotland'" ,
-                       selectInput("trustScot", "Choose Provider", orgNamesScot)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'England'",
-                       selectInput("region", "Choose Region", regNames)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Scotland'",
-                       selectInput("regionScot", "Choose Board", regNamesScot)
-      ),
-      menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
-      menuItem("Development", tabName = "dev", icon = icon('road'))
-    )
-  })
+  #reactive UI inputs
+  output$countryChoice <- renderUI({selectInput("country", "Choose Country", couNames)})
+  output$radioBut <- renderUI({radioButtons("level", "Select Analysis Level", 
+                                  choiceValues = c("National", "Regional", "Provider"),
+                                  choiceNames = c("National","Region", "Provider"))
+    })
+  output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
+  output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
+  output$orgChoiceScot <- renderUI({selectInput("trustScot", "Choose Provider", orgNamesScot)})
+  output$regChoice <- renderUI({selectInput("region", "Choose Region", regNames)})
+  output$regChoiceScot <- renderUI({selectInput("regionScot", "Choose Board", regNamesScot)})
+  output$menuItemAn <- renderUI({menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle'))})
+  output$menuItemDev <- renderUI({menuItem("Development", tabName = "dev", icon = icon('road'))})
   
 
   edPerfPlotInput <- function() {
