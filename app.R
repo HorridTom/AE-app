@@ -165,10 +165,10 @@ server <- function(input, output) {
   
   #ideally would want this to be generalised incase country names change
   #but difficult to do in this form due to reactive content: orgNames <- provLookup[which(provLookup$Country == input$country),'Prov_Name']
-  orgNames <- provLookup[which(provLookup$Country == "Country: England"),'Prov_Name']
-  orgNamesScot <- provLookup[which(provLookup$Country == "Country: Scotland"),'Prov_Name']
-  regNames <- levels(factor(provLookup[which(provLookup$Country == "Country: England"),'Region']))
-  regNamesScot <- levels(factor(provLookup[which(provLookup$Country == "Country: Scotland"),'Region']))
+  orgNames <- provLookup[which(provLookup$Country == "England"),'Prov_Name']
+  orgNamesScot <- provLookup[which(provLookup$Country == "Scotland"),'Prov_Name']
+  regNames <- levels(factor(provLookup[which(provLookup$Country == "England"),'Region']))
+  regNamesScot <- levels(factor(provLookup[which(provLookup$Country == "Scotland"),'Region']))
   couNames <- levels(factor(provLookup$Country))
   
   perf.start.date <- "2015-07-01"
@@ -180,37 +180,40 @@ server <- function(input, output) {
       menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome")),
       conditionalPanel(condition = "input.tabs === 'analysis'",
                        selectInput("country", "Choose Country", couNames),
-                       radioButtons("level", "Select Analysis Level",choices = c("National", "Regional", "Provider"))
+                       radioButtons("level", "Select Analysis Level", choices = c("National", "Regional", "Provider"))
+                                    #choiceValues = c("National", "Regional", "Provider"),
+                                    #choiceNames = c("National",regLab, "Hospital Level"))
       ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Country: England'" ,
-                       selectInput("trust", "Choose Provider", orgNames)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Country: Scotland'" ,
-                       selectInput("trustScot", "Choose Provider", orgNamesScot)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Country: England'",
-                       selectInput("region", "Choose Region", regNames)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Country: Scotland'",
-                       selectInput("regionScot", "Choose Board", regNamesScot)
-      ),
-      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'Country: England'",
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
                        checkboxInput("t1_only_checkbox", label = "Only include type 1 departments",
                                      value = FALSE)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'England'" ,
+                       selectInput("trust", "Choose Provider", orgNames)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'Scotland'" ,
+                       selectInput("trustScot", "Choose Provider", orgNamesScot)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'England'",
+                       selectInput("region", "Choose Region", regNames)
+      ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Regional' & input.country == 'Scotland'",
+                       selectInput("regionScot", "Choose Board", regNamesScot)
       ),
       menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle')),
       menuItem("Development", tabName = "dev", icon = icon('road'))
     )
   })
+  
 
   edPerfPlotInput <- function() {
     if (length(input$trust) != 0) {
       level <- input$level
       if(level == "Provider"){
-        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
                        provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
       }else if(level == "Regional"){
-        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
                        provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
       }else{
         code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
@@ -235,17 +238,16 @@ server <- function(input, output) {
     if (length(input$trust) != 0) {
       level <- input$level
       if(level == "Provider"){
-        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
                        provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
       }else if(level == "Regional"){
-        code <- ifelse(input$country == "Country: England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
                        provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
       }else{
         code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
       }
       
       measure <- "All"
-      level <- input$level
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',

@@ -83,14 +83,14 @@ regional_analysis <- function(df, level){
 clean_region_col <- function(df){
   
   df <- df %>%
-    mutate(Region = ifelse(str_detect(Region, coll("london",ignore_case = T)), "Region: London", 
-                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Region: Midlands", 
-                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"Region: North of England", 
-                                            "Region: South of England"))),
-           Reg_Code = ifelse(Region == "Region: London", "Lo", 
-                             ifelse(Region == "Region: Midlands", "Mi", 
-                                    ifelse(Region == "Region: North of England", "No", "So"))), 
-           Country = "Country: England", Nat_Code = "E")
+    mutate(Region = ifelse(str_detect(Region, coll("london",ignore_case = T)), "London", 
+                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Midlands", 
+                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"North of England", 
+                                            "South of England"))),
+           Reg_Code = ifelse(Region == "London", "Lo", 
+                             ifelse(Region == "Midlands", "Mi", 
+                                    ifelse(Region == "North of England", "No", "So"))), 
+           Country = "England", Nat_Code = "E")
 }
 
 #function to out Scottish data into NHS England format to be used in the app
@@ -99,11 +99,11 @@ standardise_data <- function(df){
   df <- df %>%
     select(-c(Att_8hr_Br, Perf_8hr, Att_12hr_Br, Perf_12hr)) %>%
     rename(Region = Board_Name, Reg_Code = Board_Code, Att_All_Br = Att_4hr_Br, Perf_All = Perf_4hr, Month_Start = Week_End) %>%
-    mutate(Country = "Country: Scotland", Nat_Code = "S") %>%
+    mutate(Country = "Scotland", Nat_Code = "S") %>%
     mutate(Att_Typ1 = NA, Att_Typ2 = NA, Att_Typ3 = NA, Att_Typ1_Br = NA, Att_Typ2_Br = NA, Att_Typ3_Br = NA,
            Perf_Typ1 = NA, E_Adm_Typ1 = NA, E_Adm_Typ2 = NA, E_Adm_Typ34 = NA, E_Adm_All_ED = NA, 
            E_Adm_Not_ED = NA, E_Adm_All = NA, E_Adm_4hBr_D = NA, E_Adm_12hBr_D = NA) %>%
-    mutate(Region = gsub("NHS","Board: ", Region))
+    mutate(Region = gsub("NHS","", Region))
   
 }
 
@@ -122,7 +122,7 @@ weekly_to_monthly <- function(df){
   
   dfMonthly <- data.frame(Month_Start, Within_4h, Greater_4h, Total)
   dfMonthly <- dfMonthly %>%
-    mutate(Code = df$Code[1], Name = df$Name[1]) %>%
+    mutate(Code = df$Code[1], Name = df$Name[1], Nat_Code = df$Nat_Code[1]) %>%
     filter(row_number() != 1 & row_number() != nrow(dfMonthly)) %>% 
     mutate(Month_Start = as.yearmon(Month_Start, tz = 'Europe/London'))
   
@@ -177,7 +177,20 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   # data for target line
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
+  #currently only England differentiates by type
+  if(df$Nat_Code[1] == "E"){
+    typeTitle <- ifelse(measure == "Typ1", "\n(Type 1 departments only)", "\n(All department types)")
+  }else{
+    typeTitle <- ""
+  }
+  
+  if(level == "National"){
+    levelTitle <- "Country:"
+  }else if(level == "Regional"){
+    levelTitle <- ifelse(df$Nat_Code[1] == "E", "Region:","Board:")
+  }else{
+    levelTitle <- ""
+  }
   
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
@@ -185,7 +198,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste(pr_name, typeTitle)) +  
+      ggtitle(cht_title, subtitle = paste(levelTitle, pr_name, typeTitle)) +  
       labs(x= x_title, y="Percentage within 4 hours", 
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
@@ -245,17 +258,30 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
-  ifelse(measure == "Typ1", typeTitle <- "\n(Type 1 departments only)", typeTitle <- "\n(All department types)")
+  # for subtitle 
+  if(df$Nat_Code[1] == "E"){
+    typeTitle <- ifelse(measure == "Typ1", "\n(Type 1 departments only)", "\n(All department types)")
+  }else{
+    typeTitle <- ""
+  }
+  
+  if(level == "National"){
+    levelTitle <- "Country:"
+  }else if(level == "Regional"){
+    levelTitle <- ifelse(df$Nat_Code[1] == "E", "Region:","Board:")
+  }else{
+    levelTitle <- ""
+  }
   
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste(pr_name, typeTitle)) + 
+      ggtitle(cht_title, subtitle = paste(levelTitle,pr_name, typeTitle)) + 
       labs(x= x_title, y="Number of attendances",
-           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
-      scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         breaks = seq(ylimlow, ylimhigh, 1000*round((ylimhigh-ylimlow)/8/1000))) 
+           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) #+
+      #scale_y_continuous(limits = c(ylimlow, ylimhigh),
+      #                   breaks = seq(ylimlow, ylimhigh, 1000*round((ylimhigh-ylimlow)/8/1000))) 
     
   } else {df}
 }
