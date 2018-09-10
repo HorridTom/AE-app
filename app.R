@@ -79,7 +79,8 @@ ui <- dashboardPage(
      tabItems(
        tabItem(tabName = "analysis",
                 h1("Analysis of Accident and Emergency Attendance Data"),
-                h4("NHS England Provider Organisations"),
+                #h4("NHS England Provider Organisations"), ###needs to be updated for Scotland
+                h4(uiOutput("subtitle")),
                 fluidRow(column(width = 12,
                                 box(plotOutput("edPerfPlot"), width = NULL),
                                 box(plotOutput("edVolPlot"), width = NULL)
@@ -91,11 +92,14 @@ ui <- dashboardPage(
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
                 p("This application provides statistical analysis of attendance data relating
-                  to providers of NHS accident and emergency department services in England."),
+                  to providers of NHS accident and emergency department services in England and Scotland."),
                 p("All the data used
-                is publicly available from the NHS England website:"),
-                a("A&E waiting times and activity",
+                is publicly available from the NHS England and ISD Scotland websites:"),
+                a("A&E waiting times and activity for England",
                   href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/"),
+                p("\n"),
+                a("A&E waiting times and activity for Scotland",
+                  href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
                 h2("Shewhart Charts"),
                 p("The analysis uses Shewhart charts, also known as control charts. There
                   is a brief explanation of this approach below, for more information
@@ -145,7 +149,6 @@ ui <- dashboardPage(
                h2("Coming soon..."),
                p("In the near future we hope to implement the following new features:"),
                tags$ol(
-                 tags$li("Regional and national aggregated analysis"),
                  tags$li("Download buttons to make it easy to save the plots (right click and save as for now)"),
                  tags$li("Improved look and feel"),
                  tags$li("Distinct periods for control limits, to better reflect shifts in the measures")
@@ -201,6 +204,7 @@ server <- function(input, output) {
   perf.brk.date <- NULL
   
   #reactive UI inputs
+  output$subtitle <- renderUI({ifelse(input$country == "England", "NHS England Provider Organisations", "NHS Scotland Provider Organisations")})
   output$countryChoice <- renderUI({selectInput("country", "Choose Country", couNames)})
   output$radioBut <- renderUI({radioButtons("level", "Select Analysis Level", 
                                   choiceValues = c("National", "Regional", "Provider"),
