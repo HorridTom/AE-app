@@ -206,9 +206,12 @@ server <- function(input, output) {
   #reactive UI inputs
   output$subtitle <- renderUI({ifelse(input$country == "England", "NHS England Provider Organisations", "NHS Scotland Provider Organisations")})
   output$countryChoice <- renderUI({selectInput("country", "Choose Country", couNames)})
-  output$radioBut <- renderUI({radioButtons("level", "Select Analysis Level", 
+  output$radioBut <- renderUI({
+    if(length(input$country != 0)){
+      radioButtons("level", "Select Analysis Level",
                                   choiceValues = c("National", "Regional", "Provider"),
                                   choiceNames = c("National", regLab(), orgLab()))
+      }
     })
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
@@ -220,7 +223,7 @@ server <- function(input, output) {
   
 
   edPerfPlotInput <- function() {
-    if (length(input$trust) != 0) {
+    if (length(input$trust) != 0 & length(input$level) != 0) {
       level <- input$level
       if(level == "Provider"){
         code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
@@ -248,7 +251,7 @@ server <- function(input, output) {
   })
   
   edVolPlotInput <- function() {
-    if (length(input$trust) != 0) {
+    if (length(input$trust) != 0 & length(input$level) != 0) {
       level <- input$level
       if(level == "Provider"){
         code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
