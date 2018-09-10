@@ -285,19 +285,19 @@ server <- function(input, output) {
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                      ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
                             provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
         
-        paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-              "_PerfPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
-              perf.start.date,"/",perf.end.date,".png", sep = "")
       }else{
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
         
-        paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-              "_PerfPlot_","_",
-              perf.start.date,"/",perf.end.date,".png", sep = "")
+        typ <- ""
       }
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
+            "_PerfPlot_",typ,"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file){
       png(file, width = 10, height = 5.5, units = 'in', res = 300) 
@@ -311,19 +311,18 @@ server <- function(input, output) {
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
         
-        paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-              "_AttendPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
-              perf.start.date,"/",perf.end.date,".png", sep = "")
       }else{
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
-        
-        paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-              "_AttendPlot_","_",
-              perf.start.date,"/",perf.end.date,".png", sep = "")
+        typ <- ""
       }
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
+            "_AttendPlot_",typ,"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
