@@ -193,8 +193,8 @@ server <- function(input, output) {
   regNamesScot <- levels(factor(provLookup[which(provLookup$Country == "Scotland"),'Region']))
   couNames <- levels(factor(provLookup$Country))
   
-  #regLab <- reactive({ifelse(input$country == "England", "Regional","Board Level")})
-  #orgLab <- reactive({ifelse(input$country == "England", "Provider","Hospital")})
+  regLab <- reactive({ifelse(input$country == "England", "Regional","Board Level")})
+  orgLab <- reactive({ifelse(input$country == "England", "Provider Level","Hospital Level")})
   
   perf.start.date <- "2015-07-01"
   perf.end.date <- lubridate::today()
@@ -204,7 +204,7 @@ server <- function(input, output) {
   output$countryChoice <- renderUI({selectInput("country", "Choose Country", couNames)})
   output$radioBut <- renderUI({radioButtons("level", "Select Analysis Level", 
                                   choiceValues = c("National", "Regional", "Provider"),
-                                  choiceNames = c("National","Region", "Provider"))
+                                  choiceNames = c("National", regLab(), orgLab()))
     })
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
