@@ -281,7 +281,17 @@ server <- function(input, output) {
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
   output$downloadPerfPlot <- downloadHandler( 
     filename = function() {
-      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+      if(input$country == "England"){
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
+                     ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
+                            provLookup[which(provLookup$Country == input$country),'Country']))
+      }else{
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+      }
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
             "_PerfPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
             perf.start.date,"/",perf.end.date,".png", sep = "")
     },
@@ -293,7 +303,17 @@ server <- function(input, output) {
   
   output$downloadVolPlot <- downloadHandler(
     filename = function() {
-      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',c(provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name']))),
+      if(input$country == "England"){
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+      }else{
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+      }
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
             "_AttendPlot_",ifelse(input$t1_only_checkbox,"Type1","AllTypes"),"_",
             perf.start.date,"/",perf.end.date,".png", sep = "")
     },
