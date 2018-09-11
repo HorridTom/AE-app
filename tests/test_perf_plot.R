@@ -4,6 +4,8 @@ source("../spc_rules.R")
 
 load('test-data/AE_data_test.rda')
 
+AE_data_test <- clean_region_col(AE_data_test)
+
 testthat::test_that("Performance plot is correct for April 2017 for Chelsea and Westminster",{
   ppchart_all <- plot_performance(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'All',
                                   start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider")
