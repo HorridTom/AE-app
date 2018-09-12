@@ -16,7 +16,10 @@ r1_col = "orange"
 r2_col = "steelblue3"
 
 urls_of_data <- NULL
-if(update_data) {urls_of_data <- getAEdata_urls_monthly()}
+if(update_data) {
+  urls_of_data <- nhsAEscraper::getAEdata_urls_monthly()
+  urls_of_Scotland_data <- nhsAEscraperScotland::getAEdata_urls_monthly()
+}
 AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw')
 AE_Data <- clean_region_col(AE_Data)
 AE_Data_Scot <- nhsAEscraperScotland::getAE_data(update_data = update_data, directory = 'data-raw')
@@ -26,6 +29,7 @@ AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
 assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
 assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
+assign("urls_of_Scotland_data_obtained", urls_of_Scotland_data, envir = .GlobalEnv)
 
 # Define UI
 ui <- dashboardPage(
@@ -165,11 +169,18 @@ server <- function(input, output) {
   # If new data has been released since the app was launched,
   # download it
   if(update_data) {
-    current_data_urls <- getAEdata_urls_monthly()
+    current_data_urls <- nhsAEscraper::getAEdata_urls_monthly()
+    current_Scotland_data_urls <- nhsAEscraperScotland::getAEdata_urls_monthly()
   } else {
       current_data_urls <- NULL
+      current_Scotland_data_url <- NULL
   }
-  if (!setequal(urls_of_data_obtained, current_data_urls)) {
+  # Need to separate the updates for the different websites
+  # To do this, need to store data for each country in a separate folder
+  # For now, update both when either changes
+  # This whole functionality will need redoing ultimately, to use persistent storage
+  if (!setequal(urls_of_data_obtained, current_data_urls) ||
+      !setequal(urls_of_Scotland_data_obtained, current_Scotland_data_urls)) {
     file.remove(
       dir('data-raw',
           pattern = "*",
@@ -185,6 +196,7 @@ server <- function(input, output) {
     assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     assign("AE_Data", AE_Data, envir = .GlobalEnv)
     assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
+    assign("urls_of_Scotland_data_obtained", current_Scotland_data_urls, envir = .GlobalEnv)
   }
   
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
