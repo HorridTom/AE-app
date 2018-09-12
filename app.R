@@ -104,6 +104,9 @@ ui <- dashboardPage(
                 p("\n"),
                 a("A&E waiting times and activity for Scotland",
                   href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
+                p("\n"),
+                p("Note that NHS Scotland data is provided weekly. At present, for consistency the weekly data is
+                  attributed to monthly level, but future development aims to allow for analysis of this data weekly."),
                 h2("Shewhart Charts"),
                 p("The analysis uses Shewhart charts, also known as control charts. There
                   is a brief explanation of this approach below, for more information
@@ -155,7 +158,8 @@ ui <- dashboardPage(
                tags$ol(
                  tags$li("Download buttons to make it easy to save the plots (right click and save as for now)"),
                  tags$li("Improved look and feel"),
-                 tags$li("Distinct periods for control limits, to better reflect shifts in the measures")
+                 tags$li("Distinct periods for control limits, to better reflect shifts in the measures"),
+                 tags$li("Weekly analysis for NHS Scotland data")
                )
                )
       )
