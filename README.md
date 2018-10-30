@@ -9,8 +9,27 @@ The app currently provides analysis of the monthly number of attendances, and th
 
 More details on the methods used can be found in the "Understanding the analysis" tab of the app.
 
+Run the app locally
+-------------------
+
+You will need to install the following packages:
+
+``` r
+install.packages(c('shiny','shinydashboard','tidyverse','stringr','qicharts2','scales','zoo','wktmo','testthat'))
+devtools::install_github("ImogenConnorHelleur/nhsAEscraperScotland", ref = "just-provider-data")
+devtools::install_github('HorridTom/nhsAEscraper')
+```
+
+After cloning this repo, the app can then be run as usual with the command:
+
+``` r
+shiny::runApp()
+```
+
+Note that with the default settings the app requires a live internet connection, to download the data.
+
 Example analyses
-================
+----------------
 
 Example control chart analyses are shown below for the whole of England.
 
