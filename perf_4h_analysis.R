@@ -282,8 +282,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         breaks = seq(ylimlow, ylimhigh, 1000*(ylimhigh-ylimlow)/8/1000)
-                         ) 
+                         label = comma) 
     
   } else {df}
 }
