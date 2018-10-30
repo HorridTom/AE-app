@@ -35,19 +35,20 @@ assign("urls_of_Scotland_data_obtained", urls_of_Scotland_data, envir = .GlobalE
 ui <- dashboardPage(
 
    # Application title
-   dashboardHeader(tags$li(class = "dropdown",
-                           tags$style(".main-header {max-height: 90px}"),
-                           tags$style(".main-header .logo {height: 90px;}"),
-                           tags$style(".sidebar-toggle {height: 90px; padding-top: 1px !important;}"),
-                           tags$style(".navbar {min-height:90px !important}")
-                          ),
+   dashboardHeader(#tags$li(class = "dropdown"#,
+                           #tags$style(".main-header {max-height: 90px}"),
+                           #tags$style(".main-header .logo {height: 90px;}"),
+                           #tags$style(".sidebar-toggle {height: 90px; padding-top: 1px !important;}"),
+                           #tags$style(".navbar {min-height:90px !important}")
+                          #),
                     title = "A&E Tracker",
-                    titleWidth = 300,
-                    dropdownMenu(type = "notifications", badgeStatus = NULL, headerText = NULL,
-                                  icon = img(src="CLAHRC-logo-white.png", height = 60, width = 190))
+                    titleWidth = 300#,
+                    #dropdownMenu(type = "notifications", badgeStatus = NULL, headerText = NULL,
+                    #              icon = img(src="CLAHRC-logo-white.png", height = 60, width = 190))
     ),
    dashboardSidebar(tags$style(".left-side, .main-sidebar {padding-top: 90px}"),
                     width = 300,
+                    tags$img(src="CLAHRC-logo-white.png", height = 60, width = 190),
       sidebarMenu(id = "tabs", menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome"))
       ),
       conditionalPanel(condition = "input.tabs === 'analysis'",
