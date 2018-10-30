@@ -148,6 +148,8 @@ ui <- dashboardPage(
                   NHS England London. It is in a beta-testing phase at present, meaning
                  that we will review and make further improvements to the site on a regular
                  basis."),
+               p("The code for this site is under an open source licence and is available here:"),
+               a("A&E Tracker code repository", href="https://github.com/HorridTom/AE-app"),
                h2("Coming soon..."),
                p("In the near future we hope to implement the following new features:"),
                tags$ol(
