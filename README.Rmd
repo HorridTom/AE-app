@@ -22,7 +22,7 @@ More details on the methods used can be found in the "Understanding the analysis
 
 Example control chart analyses are shown below for the whole of England.
 
-```{r}
+```{r england, echo=FALSE, message=FALSE, warning=FALSE}
 source("perf_4h_analysis.R")
 source("spc_rules.R")
 AE_Data <- nhsAEscraper::getAE_data(update_data = TRUE, directory = 'data-raw')
