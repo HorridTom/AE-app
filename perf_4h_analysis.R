@@ -110,6 +110,7 @@ standardise_data <- function(df){
 weekly_to_monthly <- function(df){
   
   df <- mutate(df, Month_Start = as.Date(Month_Start))
+  df <- df %>% arrange(Month_Start)
   datStart <- as.character(df$Month_Start[1] - weeks(1))  ###because dates are given as week_end
   
   Within_4h_df <- weekToMonth(df$Within_4h, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
@@ -122,7 +123,7 @@ weekly_to_monthly <- function(df){
   
   dfMonthly <- data.frame(Month_Start, Within_4h, Greater_4h, Total)
   dfMonthly <- dfMonthly %>%
-    mutate(Code = df$Code[1], Name = df$Name[1], Nat_Code = df$Nat_Code[1]) %>%
+    mutate(Code = df$Code[nrow(df)], Name = df$Name[nrow(df)], Nat_Code = df$Nat_Code[nrow(df)]) %>%
     filter(row_number() != 1 & row_number() != nrow(dfMonthly)) %>% 
     mutate(Month_Start = as.yearmon(Month_Start, tz = 'Europe/London'))
   
@@ -141,7 +142,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- make_perf_series(df = df, code = code, measure = measure, level = level)
   
   # if no pr_name passed, lookup full name of provider
-  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
+  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = !!date.col) %>% pull(Name)}
   
   # convert arguments to dates
   st.dt <- as.Date(start.date, tz = "Europe/London")
