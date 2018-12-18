@@ -4,8 +4,8 @@ library(tidyverse)
 library(stringr)
 
 library(nhsAEscraper)
-#devtools::install_github("ImogenConnorHelleur/nhsAEscraperScotland", ref = "just-provider-data")
-library(nhsAEscraperScotland)
+#devtools::install_github("ImogenConnorHelleur/nhsAEscraper", ref = "enhancement-england-and-scotland-scraper")
+#library(nhsAEscraperScotland)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
@@ -17,12 +17,12 @@ r2_col = "steelblue3"
 
 urls_of_data <- NULL
 if(update_data) {
-  urls_of_data <- nhsAEscraper::getAEdata_urls_monthly()
-  urls_of_Scotland_data <- nhsAEscraperScotland::getAEdata_urls_monthly()
+  urls_of_data <- nhsAEscraper::getAEdata_urls_monthly(country = "England")
+  urls_of_Scotland_data <- nhsAEscraper::getAEdata_urls_monthly(country = "Scotland")
 }
-AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw')
+AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
 AE_Data <- clean_region_col(AE_Data)
-AE_Data_Scot <- nhsAEscraperScotland::getAE_data(update_data = update_data, directory = 'data-raw')
+AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
 AE_Data_Scot <- standardise_data(AE_Data_Scot)
 
 AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
