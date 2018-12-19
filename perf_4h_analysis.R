@@ -7,7 +7,7 @@ library(zoo)
 library(lubridate)
 library(wktmo)
 
-make_perf_series <- function(df, code = "RQM", measure = "All", level) {
+make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrMonthly) {
   
   df <- regional_analysis(df, level)
   df <- filter(df, Code == code)
@@ -24,7 +24,9 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level) {
     perf_series <- df %>%
       select(Code, Month_Start, Name, Nat_Code,
              Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All)
-    perf_series <- weekly_to_monthly(perf_series)
+    if(weeklyOrMonthly != "weekly"){
+      perf_series <- weekly_to_monthly(perf_series)
+    }
   }else{
     perf_series <- switch(measure,
                           All = df %>%
@@ -135,11 +137,11 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
-                             level = level) { 
+                             level = level, weeklyOrMonthly) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level)
+  df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly)
   
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = !!date.col) %>% pull(Name)}
@@ -214,11 +216,13 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3", level = "Provider") { 
+                             r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
+                             weeklyOrMonthly) { 
   
-  cht_title = "Number of A&E attendances"
+  #cht_title = "Number of A&E attendances"
+  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Number of A&E attendances per week", "Number of A&E attendances per month")
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level)
+  df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly)
   
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}

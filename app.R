@@ -52,6 +52,9 @@ ui <- dashboardPage(
       conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
                        uiOutput("typ")
       ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'Scotland'",
+                       uiOutput("weekOrMonth")
+      ),
       conditionalPanel(condition = "input.tabs === 'analysis' & input.level == 'Provider' & input.country == 'England'" ,
                        uiOutput("orgChoice")
       ),
@@ -187,9 +190,9 @@ server <- function(input, output) {
           full.names = TRUE)
       )
 
-    AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw')
+    AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
     AE_Data <- clean_region_col(AE_Data)
-    AE_Data_Scot <- nhsAEscraperScotland::getAE_data(update_data = update_data, directory = 'data-raw')
+    AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
     AE_Data_Scot <- standardise_data(AE_Data_Scot)
     
     AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
@@ -226,6 +229,7 @@ server <- function(input, output) {
       }
     })
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
+  output$weekOrMonth <- renderUI({checkboxInput("weekly_checkbox", label = "Weekly data", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
   output$orgChoiceScot <- renderUI({selectInput("trustScot", "Choose Provider", orgNamesScot)})
   output$regChoice <- renderUI({selectInput("region", "Choose Region", regNames)})
@@ -248,12 +252,14 @@ server <- function(input, output) {
       }
       
       measure <- "All"
+      weeklyOrMonthly <- "Monthly"
       if(input$t1_only_checkbox) {measure <- "Typ1"} 
+      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
       tryCatch(plot_performance(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
                                 r1_col = r1_col, r2_col=r2_col,
-                                level = level), 
+                                level = level, weeklyOrMonthly = weeklyOrMonthly), 
                error=function(e) NULL)
     }
   }
@@ -277,11 +283,13 @@ server <- function(input, output) {
       
       measure <- "All"
       if(input$t1_only_checkbox) {measure <- "Typ1"}
+      weeklyOrMonthly <- "Monthly"
+      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
       tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
                            x_title = "Month", measure = measure,
                            r1_col = r1_col, r2_col=r2_col,
-                           level = level), 
+                           level = level, weeklyOrMonthly = weeklyOrMonthly), 
                error=function(e) NULL)
     }
   }

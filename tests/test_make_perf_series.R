@@ -8,11 +8,11 @@ load('test-data/perf_data_colnames.rda')
 
 testthat::test_that("Created timeseries dataset is a dataframe",{
   ps_rqm_all_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                          measure = 'All', level = "Provider")
+                                          measure = 'All', level = "Provider", weeklyOrMonthly = "monthly")
   ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                     measure = 'Typ1', level = "Provider")
+                                     measure = 'Typ1', level = "Provider", weeklyOrMonthly = "monthly")
   ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                     measure = 'Adm', level = "Provider")
+                                     measure = 'Adm', level = "Provider", weeklyOrMonthly = "monthly")
   
   testthat::expect_is(ps_rqm_all_all, 'data.frame')
   testthat::expect_is(ps_rqm_all_typ1, 'data.frame')
@@ -21,11 +21,11 @@ testthat::test_that("Created timeseries dataset is a dataframe",{
 
 testthat::test_that("Results for selected months in performance series for Chelsea and Westminster are correct",{
   ps_rqm_all_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                            measure = 'All', level = "Provider")
+                                            measure = 'All', level = "Provider", weeklyOrMonthly = "monthly")
   ps_rqm_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                             measure = 'Typ1', level = "Provider")
+                                             measure = 'Typ1', level = "Provider", weeklyOrMonthly = "monthly")
   ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                            measure = 'Adm', level = "Provider")
+                                            measure = 'Adm', level = "Provider", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for Chelsea and Westminster (RQM)
   # in April 2017, for all attendances
@@ -73,11 +73,11 @@ testthat::test_that("Results for selected months in performance series for Chels
 
 testthat::test_that("Results for selected months in performance series for Imperial are correct",{
   ps_ryj_all_all <- make_perf_series(df = AE_data_test, code = 'RYJ',
-                                     measure = 'All', level = "Provider")
+                                     measure = 'All', level = "Provider", weeklyOrMonthly = "monthly")
   ps_ryj_all_typ1 <- make_perf_series(df = AE_data_test, code = 'RYJ',
-                                      measure = 'Typ1', level = "Provider")
+                                      measure = 'Typ1', level = "Provider", weeklyOrMonthly = "monthly")
   ps_ryj_adm_all <- make_perf_series(df = AE_data_test, code = 'RYJ',
-                                     measure = 'Adm', level = "Provider")
+                                     measure = 'Adm', level = "Provider", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for Imperial (RYJ)
   # in September 2017, for all attendances
@@ -126,7 +126,7 @@ testthat::test_that("Results for selected months in performance series for Imper
 
 testthat::test_that("Results for selected months in performance series for London region are correct",{
   ps_lo_all_all <- make_perf_series(df = AE_data_test, code = 'Lo',
-                                     measure = 'All', level = "Regional")
+                                     measure = 'All', level = "Regional", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for London region (Lo)
   # in September 2017, for all attendances
@@ -147,7 +147,7 @@ testthat::test_that("Results for selected months in performance series for Londo
 
 testthat::test_that("Results for selected months in performance series for whole of England are correct",{
   ps_e_all_all <- make_perf_series(df = AE_data_test, code = 'E',
-                                    measure = 'All', level = "National")
+                                    measure = 'All', level = "National", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for England (E)
   # in September 2017, for all attendances
@@ -171,7 +171,7 @@ testthat::test_that("Results for selected months in performance series for whole
 #tolerances included due to the week to month conversion 
 testthat::test_that("Results for selected months in performance series for University Hospital Ayr are correct",{
   ps_A210H_all_all <- make_perf_series(df = AE_data_test, code = 'A210H',
-                                     measure = 'All', level = "Provider")
+                                     measure = 'All', level = "Provider", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for University Hospital Ayr (A210H)
   # in September 2017, for all attendances
@@ -191,7 +191,7 @@ testthat::test_that("Results for selected months in performance series for Unive
 
 testthat::test_that("Results for selected months in performance series for Greater Glasgow & Clyde board are correct",{
   ps_g_all_all <- make_perf_series(df = AE_data_test, code = 'G',
-                                       measure = 'All', level = "Regional")
+                                       measure = 'All', level = "Regional", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for Greater Glasgow & Clyde board (G)
   # in september 2017, for all attendances
@@ -211,7 +211,7 @@ testthat::test_that("Results for selected months in performance series for Great
 
 testthat::test_that("Results for selected months in performance series for whole of Scotland are correct",{
   ps_s_all_all <- make_perf_series(df = AE_data_test, code = 'S',
-                                   measure = 'All', level = "National")
+                                   measure = 'All', level = "National", weeklyOrMonthly = "monthly")
   
   # Test that we get the correct results for whole of Scotland (S)
   # in sept 2017, for all attendances
@@ -227,4 +227,65 @@ testthat::test_that("Results for selected months in performance series for whole
                            filter(Month_Start == "2017-09-01") %>%
                            top_n(1) %>% pull(Greater_4h),
                          8737, tolerance = 10)
+})
+
+#####tests for weekly data
+testthat::test_that("Results for selected weeks in performance series for whole of Scotland are correct for weekly data",{
+  ps_s_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'S',
+                                   measure = 'All', level = "National", weeklyOrMonthly = "weekly")
+  
+  # Test that we get the correct results for whole of Scotland (S)
+  # in jan 2017, for all attendances by week
+  testthat::expect_equal(ps_s_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Total),
+                         25050, tolerance = 10)
+  testthat::expect_equal(ps_s_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Within_4h),
+                         23179, tolerance = 10)
+  testthat::expect_equal(ps_s_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Greater_4h),
+                         1873, tolerance = 10)
+})
+
+testthat::test_that("Results for selected weeks in performance series for Greater Glasgow & Clyde board (G) are correct for weekly data",{
+  ps_g_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'G',
+                                          measure = 'All', level = "Regional", weeklyOrMonthly = "weekly")
+  
+  # Test that we get the correct results for Greater Glasgow & Clyde board (G)
+  # in jan 2017, for all attendances by week
+  testthat::expect_equal(ps_g_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Total),
+                         6488, tolerance = 10)
+  testthat::expect_equal(ps_g_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Within_4h),
+                         5677, tolerance = 10)
+  testthat::expect_equal(ps_g_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Greater_4h),
+                         811, tolerance = 10)
+})
+
+testthat::test_that("Results for selected weeks in performance series for Greater Glasgow & Clyde board (G) are correct for weekly data",{
+  ps_A210H_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'A210H',
+                                          measure = 'All', level = "Provider", weeklyOrMonthly = "weekly")
+  
+  #Test that we get the correct results for University Hospital Ayr (A210H)
+  # in jan 2017, for all attendances by week
+  testthat::expect_equal(ps_A210H_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Total),
+                         881, tolerance = 10)
+  testthat::expect_equal(ps_A210H_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Within_4h),
+                         861, tolerance = 10)
+  testthat::expect_equal(ps_A210H_all_all_weekly %>%
+                           filter(Month_Start == "2017-01-01") %>%
+                           top_n(1) %>% pull(Greater_4h),
+                         20, tolerance = 10)
 })

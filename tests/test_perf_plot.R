@@ -8,9 +8,11 @@ AE_data_test <- clean_region_col(AE_data_test)
 
 testthat::test_that("Performance plot is correct for April 2017 for Chelsea and Westminster",{
   ppchart_all <- plot_performance(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'All',
-                                  start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider")
+                                  start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider",
+                                  weeklyOrMonthly = "monthly")
   ppchart_typ1 <- plot_performance(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'Typ1',
-                                   start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider")
+                                   start.date = "2014-01-01", end.date = "2017-06-30", level = "Provider",
+                                   weeklyOrMonthly = "monthly")
   
   # Check output is a ggplot
   testthat::expect_is(ppchart_all, "ggplot")
@@ -50,9 +52,11 @@ testthat::test_that("Performance plot is correct for April 2017 for Chelsea and 
 
 testthat::test_that("Volume plot is correct for April 2017 for Chelsea and Westminster",{
   vchart_all <- plot_volume(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'All',
-                            start.date = "2014-01-01", end.date = "2017-06-30")
+                            start.date = "2014-01-01", end.date = "2017-06-30",
+                            weeklyOrMonthly = "monthly")
   vchart_typ1 <- plot_volume(df = AE_data_test, code = 'RQM', brk.date = NULL, measure = 'Typ1',
-                             start.date = "2014-01-01", end.date = "2017-06-30")
+                             start.date = "2014-01-01", end.date = "2017-06-30",
+                             weeklyOrMonthly = "monthly")
   
   # Check output is a ggplot
   testthat::expect_is(vchart_all, "ggplot")
