@@ -2,10 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(stringr)
-
-library(nhsAEscraper)
-#devtools::install_github("ImogenConnorHelleur/nhsAEscraper", ref = "enhancement-england-and-scotland-scraper")
-#library(nhsAEscraperScotland)
+library(googlesheets)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
@@ -17,12 +14,22 @@ r2_col = "steelblue3"
 
 urls_of_data <- NULL
 if(update_data) {
-  urls_of_data <- nhsAEscraper::getAEdata_urls_monthly(country = "England")
-  urls_of_Scotland_data <- nhsAEscraper::getAEdata_urls_monthly(country = "Scotland")
+  urls_of_data_sheet <- gs_title("urls_of_data_cloud")
+  urls_of_Scotland_data_sheet <- gs_title("urls_of_Scotland_data_cloud")
+  
+  urls_of_data <- gs_read_csv(urls_of_data_sheet)
+  urls_of_data <- urls_of_data$x  #to convert to vector
+  urls_of_Scotland_data <- gs_read_csv(urls_of_Scotland_data_sheet)
+  urls_of_Scotland_data <- urls_of_Scotland_data$x
+
 }
-AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
+AE_Data_sheet <- gs_title("AE_Data_cloud")
+AE_Data_Scot_sheet <- gs_title("AE_Data_Scot_cloud")
+
+AE_Data <- gs_read_csv(AE_Data_sheet)
+AE_Data_Scot <- gs_read_csv(AE_Data_Scot_sheet)
+
 AE_Data <- clean_region_col(AE_Data)
-AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
 AE_Data_Scot <- standardise_data(AE_Data_Scot)
 
 AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
@@ -171,9 +178,10 @@ server <- function(input, output) {
   
   # If new data has been released since the app was launched,
   # download it
+  #this bit will be rewritten in the cloud code
   if(update_data) {
-    current_data_urls <- nhsAEscraper::getAEdata_urls_monthly()
-    current_Scotland_data_urls <- nhsAEscraperScotland::getAEdata_urls_monthly()
+    current_data_urls <- urls_of_data
+    current_Scotland_data_urls <- urls_of_Scotland_data
   } else {
       current_data_urls <- NULL
       current_Scotland_data_url <- NULL
@@ -190,9 +198,13 @@ server <- function(input, output) {
           full.names = TRUE)
       )
 
-    AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
+    AE_Data_sheet <- gs_title("AE_Data_cloud")
+    AE_Data_Scot_sheet <- gs_title("AE_Data_Scot_cloud")
+    
+    AE_Data <- gs_read_csv(AE_Data_sheet)
+    AE_Data_Scot <- gs_read_csv(AE_Data_Scot_sheet)
+    
     AE_Data <- clean_region_col(AE_Data)
-    AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
     AE_Data_Scot <- standardise_data(AE_Data_Scot)
     
     AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
