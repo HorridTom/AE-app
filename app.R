@@ -229,7 +229,7 @@ server <- function(input, output) {
       }
     })
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
-  output$weekOrMonth <- renderUI({checkboxInput("weekly_checkbox", label = "Weekly data", value = FALSE)})
+  output$weekOrMonth <- renderUI({checkboxInput("weekly_checkbox", label = "Weekly analysis", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
   output$orgChoiceScot <- renderUI({selectInput("trustScot", "Choose Provider", orgNamesScot)})
   output$regChoice <- renderUI({selectInput("region", "Choose Region", regNames)})
