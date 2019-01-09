@@ -103,8 +103,9 @@ ui <- dashboardPage(
                 a("A&E waiting times and activity for Scotland",
                   href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
                 p("\n"),
-                p("Note that NHS Scotland data is provided weekly. At present, for consistency the weekly data is
-                  attributed to monthly level, but future development aims to allow for analysis of this data weekly."),
+                p("Note that NHS Scotland data is provided weekly, and may be analysed either weekly as-is, or attributed
+                  across months and analysed monthly. Tick/untick the 'Weekly analysis' box to toggle between these
+                  two analysis modes."),
                 h2("Shewhart Charts"),
                 p("The analysis uses Shewhart charts, also known as control charts. There
                   is a brief explanation of this approach below, for more information
@@ -121,9 +122,9 @@ ui <- dashboardPage(
                   measure varies is different in some way from its typical behaviour. The rules we use in this
                   analysis are as follows:"),
                 tags$ol(
-                  tags$li("Any month outside the control limits (month highlighted in orange)"),
-                  tags$li("Eight or more consecutive months all above, or all below, the centre line
-                          (months highlighted in blue)")
+                  tags$li("Any month/week outside the control limits (highlighted in orange)"),
+                  tags$li("Eight or more consecutive months/weeks all above, or all below, the centre line
+                          (highlighted in blue)")
                 ),
                 p("Any instance of one of these rules being triggered by a measure indicates that there is likely
                   to be an identifiable cause for this particular pattern in the data. This is known as a special cause
