@@ -172,8 +172,8 @@ server <- function(input, output) {
   # If new data has been released since the app was launched,
   # download it
   if(update_data) {
-    current_data_urls <- nhsAEscraper::getAEdata_urls_monthly()
-    current_Scotland_data_urls <- nhsAEscraperScotland::getAEdata_urls_monthly()
+    current_data_urls <- nhsAEscraper::getAEdata_urls_monthly(country = "England")
+    current_Scotland_data_urls <- nhsAEscraper::getAEdata_urls_monthly(country = "Scotland")
   } else {
       current_data_urls <- NULL
       current_Scotland_data_url <- NULL

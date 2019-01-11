@@ -7,7 +7,7 @@ library(zoo)
 library(lubridate)
 library(wktmo)
 
-make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrMonthly) {
+make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrMonthly = "Monthly") {
   
   df <- regional_analysis(df, level)
   df <- filter(df, Code == code)
@@ -137,7 +137,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
-                             level = level, weeklyOrMonthly) { 
+                             level = level, weeklyOrMonthly = "Monthly") { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
@@ -217,7 +217,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
-                             weeklyOrMonthly) { 
+                             weeklyOrMonthly = "Monthly") { 
   
   #cht_title = "Number of A&E attendances"
   cht_title <- ifelse(weeklyOrMonthly == "weekly", "Number of A&E attendances per week", "Number of A&E attendances per month")

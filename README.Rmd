@@ -24,7 +24,6 @@ You will need to install the following packages:
 
 ```{r prerequisites, eval=FALSE, echo=TRUE}
 install.packages(c('shiny','shinydashboard','tidyverse','stringr','qicharts2','scales','zoo','wktmo','testthat'))
-devtools::install_github("ImogenConnorHelleur/nhsAEscraperScotland", ref = "just-provider-data")
 devtools::install_github('HorridTom/nhsAEscraper')
 ```
 
