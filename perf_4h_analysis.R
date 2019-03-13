@@ -43,7 +43,11 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
   
   perf_series %>% mutate(Performance = Within_4h / Total) %>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
-    arrange(Month_Start)
+    #two new cols: 
+    #if National code - i.e. Scotland $ weekly, return number of days - i.e. 7
+    #else return number of days in a months
+    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(df$Month_Start))) %>%
+    mutate(daily_ave = Total/days_in_period)
   
 }
 
@@ -239,7 +243,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
   if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up')
+    #Total is replaced with the new col "daily_ave"
+    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up')
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -249,7 +254,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up',
+    #Total is replaced with the new col "daily_ave"
+    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up',
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
@@ -259,7 +265,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   # chart y limit
   ylimlow <- 0
-  ylimhigh <- 1000*ceiling(max(df$Total)*1.1/1000)
+  #Total is replaced with the new col "daily_ave"
+  ylimhigh <- 1000*ceiling(max(df$daily_ave)*1.1/1000)
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
