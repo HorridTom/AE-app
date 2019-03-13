@@ -22,7 +22,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
 
   if(df[1,"Nat_Code"] == "S"){
     perf_series <- df %>%
-      select(Code, Month_Start, Name, Nat_Code,
+      select(Code, Month_Start, Name, Nat_Code, E_Adm_All_ED,
              Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All)
     if(weeklyOrMonthly != "weekly"){
       perf_series <- weekly_to_monthly(perf_series)
@@ -42,6 +42,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
   }
   
   perf_series %>% mutate(Performance = Within_4h / Total) %>%
+    mutate(total = Total)%>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
     arrange(Month_Start)
   
