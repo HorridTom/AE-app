@@ -224,7 +224,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              weeklyOrMonthly = "Monthly") { 
   
   #cht_title = "Number of A&E attendances"
-  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Number of A&E attendances per week", "Number of A&E attendances per month")
+  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
   
   df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly)
   
@@ -290,7 +290,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = paste(levelTitle,pr_name, typeTitle)) + 
-      labs(x= x_title, y="Number of attendances",
+      labs(x= x_title, y="Average daily attendances",
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
