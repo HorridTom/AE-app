@@ -22,7 +22,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
 
   if(df[1,"Nat_Code"] == "S"){
     perf_series <- df %>%
-      select(Code, Month_Start, Name, Nat_Code, E_Adm_All_ED,
+      select(Code, Month_Start, Name, Nat_Code, E_Adm_All, E_Adm_Typ1, E_Adm_All_ED,
              Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All)
     if(weeklyOrMonthly != "weekly"){
       perf_series <- weekly_to_monthly(perf_series)
@@ -35,9 +35,15 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
                           Typ1 = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
                                    Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total = Att_Typ1),
-                          Adm = df %>%
+                          Adm_All_ED = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED)
+                                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED),
+                          Adm_Typ1 = df %>%
+                            select(Code, Month_Start, Name, Nat_Code,
+                                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_Typ1),
+                          Adm_All = df %>%
+                            select(Code, Month_Start, Name, Nat_Code,
+                                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All)
     )
   }
   
