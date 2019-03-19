@@ -43,7 +43,11 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level, weeklyOrM
   
   perf_series %>% mutate(Performance = Within_4h / Total) %>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
-    arrange(Month_Start)
+    #two new cols: 
+    #if National code - i.e. Scotland $ weekly, return number of days - i.e. 7
+    #else return number of days in a months
+    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(df$Month_Start))) %>%
+    mutate(daily_ave = Total/days_in_period)
   
 }
 
@@ -220,7 +224,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              weeklyOrMonthly = "Monthly") { 
   
   #cht_title = "Number of A&E attendances"
-  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Number of A&E attendances per week", "Number of A&E attendances per month")
+  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
   
   df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly)
   
@@ -239,7 +243,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
   if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up')
+    #Total is replaced with the new col "daily_ave"
+    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up')
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -249,7 +254,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts2::qic(Month_Start, Total, n = rep(1, nrow(df)), data = df, chart = 'up',
+    #Total is replaced with the new col "daily_ave"
+    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up',
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
@@ -259,7 +265,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   # chart y limit
   ylimlow <- 0
-  ylimhigh <- 1000*ceiling(max(df$Total)*1.1/1000)
+  #Total is replaced with the new col "daily_ave"
+  ylimhigh <- 1000*ceiling(max(df$daily_ave)*1.1/1000)
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
@@ -283,7 +290,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = paste(levelTitle,pr_name, typeTitle)) + 
-      labs(x= x_title, y="Number of attendances",
+      labs(x= x_title, y="Average daily attendances",
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),

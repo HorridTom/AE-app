@@ -70,26 +70,26 @@ testthat::test_that("Volume plot is correct for April 2017 for Chelsea and Westm
   
   # Check correct performance for April 2017
   testthat::expect_equal(vchart_all$data$y[which(vchart_all$data$x == Apr2017)],
-                         23452, tolerance = .001, scale = 1)
+                         781.7333, tolerance = .001, scale = 1)
   testthat::expect_equal(vchart_typ1$data$y[which(vchart_typ1$data$x == Apr2017)],
-                         15957, tolerance = .001, scale = 1)
+                         531.9, tolerance = .001, scale = 1)
   
   # Check correct centre line at April 2017
   testthat::expect_equal(vchart_all$data$cl[which(vchart_all$data$x == Apr2017)],
-                         24076.5, tolerance = .001, scale = 1)
+                         797.419, tolerance = .001, scale = 1)
   testthat::expect_equal(vchart_typ1$data$cl[which(vchart_typ1$data$x == Apr2017)],
-                         16553.16667, tolerance = .001, scale = 1)
+                         548.163, tolerance = .001, scale = 1)
   
   # Check correct upper control limit at April 2017
   testthat::expect_equal(vchart_all$data$ucl[which(vchart_all$data$x == Apr2017)],
-                         31056.28723, tolerance = .001, scale = 1)
+                         904.0068, tolerance = .001, scale = 1)
   testthat::expect_equal(vchart_typ1$data$ucl[which(vchart_typ1$data$x == Apr2017)],
-                         21838.80496, tolerance = .001, scale = 1)
+                         637.629, tolerance = .001, scale = 1)
   
   # Check correct lower control limit at April 2017
   testthat::expect_equal(vchart_all$data$lcl[which(vchart_all$data$x == Apr2017)],
-                         17096.71277, tolerance = .001, scale = 1)
+                         690.832, tolerance = .001, scale = 1)
   testthat::expect_equal(vchart_typ1$data$lcl[which(vchart_typ1$data$x == Apr2017)],
-                         11267.52837, tolerance = .001, scale = 1)
+                         458.697, tolerance = .001, scale = 1)
   
 })
