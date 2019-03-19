@@ -2,7 +2,7 @@
 plot_adm_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                         start.date = "2015-07-01", end.date = "2018-05-30",
                         brk.date = NULL, max_lower_y_scale = 60,
-                        measure = "Adm", plot.chart = TRUE,
+                        measure = "Adm_All_ED", plot.chart = TRUE,
                         pr_name = NULL, x_title = "Month",
                         r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
                         weeklyOrMonthly = "Monthly") { 
