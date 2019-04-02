@@ -226,8 +226,16 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
                              weeklyOrMonthly = "Monthly") { 
   
-  #cht_title = "Number of A&E attendances"
-  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Number of A&E attendances per week", "Number of A&E attendances per month")
+  #chart title dependent  on whether two key variable, 1) weeklyOrMonthly and 2) measure type
+  cht_title_1 <- ifelse(measure == "Adm_All_ED"| measure == "Adm_Typ1" | measure == "Adm_All", 
+                        "Number of emergency admissions (ED)", 
+                        "Number of A&E attendances")
+  cht_title_2 <- ifelse(weeklyOrMonthly == "weekly", "per week", "per month")
+  
+  cht_title <- paste(cht_title_1, cht_title_2)
+  
+  
+
   
   df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly)
   
@@ -272,7 +280,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   # for subtitle 
   if(df$Nat_Code[1] == "E"){
-    typeTitle <- ifelse(measure == "Typ1", "\n(Type 1 departments only)", "\n(All department types)")
+    typeTitle <- ifelse(measure == "Typ1"| measure == "Adm_Typ1", "\n(Type 1 departments only)", "\n(All department types)")
   }else{
     typeTitle <- ""
   }
@@ -285,12 +293,17 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     levelTitle <- ""
   }
   
+  #chart title dependent  on whether two key variable, 1) weeklyOrMonthly and 2) measure type
+  y_title <- ifelse(measure == "Adm_All_ED"| measure == "Adm_Typ1" | measure == "Adm_All", 
+                        "Number of emergency admissions (ED)", 
+                        "Number of A&E attendances")
+  
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = paste(levelTitle,pr_name, typeTitle)) + 
-      labs(x= x_title, y="Number of attendances",
+      labs(x= x_title, y=y_title,
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
