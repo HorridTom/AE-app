@@ -85,7 +85,8 @@ ui <- dashboardPage(
                 h4(uiOutput("subtitle")),
                 fluidRow(column(width = 12,
                                 box(plotOutput("edPerfPlot"), width = NULL),
-                                box(plotOutput("edVolPlot"), width = NULL)
+                                box(plotOutput("edVolPlot"), width = NULL),
+                                box(plotOutput("admVolPlot"), width = NULL)
                                 )
                          ),
                downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
@@ -296,6 +297,38 @@ server <- function(input, output) {
   
   output$edVolPlot <- renderPlot({
     print(edVolPlotInput())
+  })
+  
+  # Generate admission volumne plot
+  
+  admVolPlotInput <- function() {
+    if (length(input$trust) != 0 & length(input$level) != 0) {
+      level <- input$level
+      if(level == "Provider"){
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
+                       provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
+      }else if(level == "Regional"){
+        code <- ifelse(input$country == "England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
+                       provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
+      }else{
+        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
+      }
+      
+      measure <- "Adm_All_ED"
+      if(input$t1_only_checkbox) {measure <- "Adm_Typ1"}
+      weeklyOrMonthly <- "Monthly"
+      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
+      tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+                           brk.date = perf.brk.date, date.col = 'Month_Start',
+                           x_title = "Month", measure = measure,
+                           r1_col = r1_col, r2_col=r2_col,
+                           level = level, weeklyOrMonthly = weeklyOrMonthly), 
+               error=function(e) NULL)
+    }
+  }
+  
+  output$admVolPlot <- renderPlot({
+    print(admVolPlotInput())
   })
   
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
