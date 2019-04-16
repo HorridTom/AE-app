@@ -55,7 +55,7 @@ testthat::expect_equal(sum(vchart_adm_typ1$data$x == Apr2017), 1)
 testthat::expect_equal(sum(vchart_adm_all$data$x == Apr2017), 1)
 
 
-# Check correct performance for April 2017
+# Check correct volume for April 2017
 testthat::expect_equal(vchart_adm_all_ed$data$y[which(vchart_adm_all_ed$data$x == Apr2017)],
                        3375, tolerance = .001, scale = 1)
 testthat::expect_equal(vchart_adm_typ1$data$y[which(vchart_adm_typ1$data$x == Apr2017)],
