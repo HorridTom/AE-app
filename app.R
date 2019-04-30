@@ -86,7 +86,8 @@ ui <- dashboardPage(
                 fluidRow(column(width = 12,
                                 box(plotOutput("edPerfPlot"), width = NULL),
                                 box(plotOutput("edVolPlot"), width = NULL),
-                                box(plotOutput("admVolPlot"), width = NULL)
+                                conditionalPanel(condition = "input.country == 'England'",
+                                                 box(plotOutput("admVolPlot"), width = NULL))
                                 )
                          ),
                downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
@@ -302,6 +303,7 @@ server <- function(input, output) {
   # Generate admission volumne plot
   
   admVolPlotInput <- function() {
+    if(length(input$country) != 0 && input$country != "England") {return(NULL)}
     if (length(input$trust) != 0 & length(input$level) != 0) {
       level <- input$level
       if(level == "Provider"){
