@@ -8,7 +8,7 @@ library(lubridate)
 library(wktmo)
 
 make_perf_series <- function(df, code = "RQM", measure = "All", level, 
-                             weeklyOrMonthly = "Monthly", onlyProvsReporting) {
+                             weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
   
   df <- regional_analysis(df, level, onlyProvsReporting)
   df <- filter(df, Code == code)
@@ -74,7 +74,7 @@ regional_analysis <- function(df, level, onlyProvsReporting){
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
     df <- df %>%
-      filter(!is.na(Att_Typ2_Br)) 
+      filter(!is.na(Att_All_Br)) 
     }
 
   dfReg <- df %>%
