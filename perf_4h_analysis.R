@@ -73,8 +73,9 @@ regional_analysis <- function(df, level, onlyProvsReporting){
       mutate(Name = !!Name, Code = !!Code)
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
+    provs_not_reporting <- df %>% filter(is.na(Att_All_Br)) %>% distinct(Prov_Code) %>% pull(Prov_Code)
     df <- df %>%
-      filter(!is.na(Att_All_Br)) 
+      filter(!(Prov_Code %in% provs_not_reporting)) 
     }
 
   dfReg <- df %>%
@@ -246,8 +247,11 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   #cht_title = "Number of A&E attendances"
   cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level, 
+  df_original <- df
+  df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
                          weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = onlyProvsReporting)
+  df_all <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
+                         weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
   
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
@@ -287,7 +291,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   # chart y limit
   ylimlow <- 0
   #Total is replaced with the new col "daily_ave"
-  ylimhigh <- 1000*ceiling(max(df$daily_ave)*1.1/1000)
+  ylimhigh <- 1000*ceiling(max(df_all$daily_ave)*1.1/1000)
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   

@@ -106,6 +106,14 @@ ui <- dashboardPage(
                 a("A&E waiting times and activity for Scotland",
                   href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
                 p("\n"),
+                p("Note that due to the 'rapid care measures' pilot, data for some NHS England providers is not available from May 2019.
+                  By default this analysis now excludes these providers for the whole time period. If you wish to see the analysis
+                  for all providers, untick the control box on the right hand panel. The four hour performance measure is not comparable
+                  before and after the start of the pilot in this case, and so is only displayed up to April 2019." ),
+                p("\n"),
+                a("King's Fund report on the review of A&E standards",
+                  href="https://www.kingsfund.org.uk/publications/nhs-england-review-waiting-times-accident-emergency"),
+                p("\n"),
                 p("Note that NHS Scotland data is provided weekly, and may be analysed either weekly as-is, or attributed
                   across months and analysed monthly. Tick/untick the 'Weekly analysis' box to toggle between these
                   two analysis modes."),
@@ -232,7 +240,7 @@ server <- function(input, output) {
       }
     })
   
-  output$stillReporting <- renderUI({checkboxInput("still_reporting_checkbox", label = "Only include providers that \nare still reporting", value = FALSE)})
+  output$stillReporting <- renderUI({checkboxInput("still_reporting_checkbox", label = "Exclude providers with missing data", value = TRUE)})
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
   output$weekOrMonth <- renderUI({checkboxInput("weekly_checkbox", label = "Weekly analysis", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
