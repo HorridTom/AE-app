@@ -52,6 +52,9 @@ ui <- dashboardPage(
       conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
                        uiOutput("typ")
       ),
+      conditionalPanel(condition = "input.tabs === 'analysis' & input.level != 'Provider' & input.country == 'England'",
+                       uiOutput("stillReporting")
+      ),
       conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'Scotland'",
                        uiOutput("weekOrMonth")
       ),
@@ -102,6 +105,14 @@ ui <- dashboardPage(
                 p("\n"),
                 a("A&E waiting times and activity for Scotland",
                   href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
+                p("\n"),
+                p("Note that due to the 'rapid care measures' pilot, data for some NHS England providers is not available from May 2019.
+                  By default this analysis now excludes these providers for the whole time period. If you wish to see the analysis
+                  for all providers, untick the control box on the right hand panel. The four hour performance measure is not comparable
+                  before and after the start of the pilot in this case, and so is only displayed up to April 2019." ),
+                p("\n"),
+                a("King's Fund report on the review of A&E standards",
+                  href="https://www.kingsfund.org.uk/publications/nhs-england-review-waiting-times-accident-emergency"),
                 p("\n"),
                 p("Note that NHS Scotland data is provided weekly, and may be analysed either weekly as-is, or attributed
                   across months and analysed monthly. Tick/untick the 'Weekly analysis' box to toggle between these
@@ -228,6 +239,8 @@ server <- function(input, output) {
                                   choiceNames = c("National", regLab(), orgLab()))
       }
     })
+  
+  output$stillReporting <- renderUI({checkboxInput("still_reporting_checkbox", label = "Exclude providers with missing data", value = TRUE)})
   output$typ <- renderUI({checkboxInput("t1_only_checkbox", label = "Only include type 1 departments", value = FALSE)})
   output$weekOrMonth <- renderUI({checkboxInput("weekly_checkbox", label = "Weekly analysis", value = FALSE)})
   output$orgChoice <- renderUI({selectInput("trust", "Choose Provider", orgNames)})
@@ -253,13 +266,16 @@ server <- function(input, output) {
       
       measure <- "All"
       weeklyOrMonthly <- "Monthly"
+      onlyProvsReporting <- F
       if(input$t1_only_checkbox) {measure <- "Typ1"} 
       if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
+      if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
       tryCatch(plot_performance(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
                                 r1_col = r1_col, r2_col=r2_col,
-                                level = level, weeklyOrMonthly = weeklyOrMonthly), 
+                                level = level, weeklyOrMonthly = weeklyOrMonthly,
+                                onlyProvsReporting = onlyProvsReporting), 
                error=function(e) NULL)
     }
   }
@@ -282,14 +298,17 @@ server <- function(input, output) {
       }
       
       measure <- "All"
+      onlyProvsReporting <- F
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       weeklyOrMonthly <- "Monthly"
       if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
+      if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
       tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                            brk.date = perf.brk.date, date.col = 'Month_Start',
                            x_title = "Month", measure = measure,
                            r1_col = r1_col, r2_col=r2_col,
-                           level = level, weeklyOrMonthly = weeklyOrMonthly), 
+                           level = level, weeklyOrMonthly = weeklyOrMonthly,
+                           onlyProvsReporting = onlyProvsReporting), 
                error=function(e) NULL)
     }
   }
