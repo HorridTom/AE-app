@@ -1,0 +1,117 @@
+---
+title: "Funnel Plots of 4-hour performance"
+author: "Tom Woodcock"
+date: "19/02/2020"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(scales)
+library(knitr)
+library(kableExtra)
+```
+
+
+```{r}
+country <- "Scotland"
+st.dt <- as.Date("2019-08-01")
+ed.dt <- as.Date("2019-11-01")
+update_data <- TRUE
+```
+
+```{r}
+# AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
+# AE_Data <- clean_region_col(AE_Data)
+# AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
+# AE_Data_Scot <- standardise_data(AE_Data_Scot)
+# 
+# AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
+AE_Data <- readRDS("data-out/AE_Data.rds")
+```
+
+```{r}
+AE_Data_fun <- AE_Data %>%
+  dplyr::filter(Country == country,
+                Month_Start < ed.dt, Month_Start >= st.dt,
+                Att_All > 0) %>%
+  dplyr::mutate(Prov_Code = reorder(Prov_Code, Att_All))
+```
+
+```{r}
+AE_Data_fun_agg <- AE_Data_fun %>% group_by(Prov_Code) %>%
+  summarise(Prov_Name = first(Prov_Name), Att_All = sum(Att_All), Att_Typ1 = sum(Att_Typ1),
+            Att_All_Br = sum(Att_All_Br), Att_Typ1_Br = sum(Att_Typ1_Br),
+            Comp_All = Att_All - Att_All_Br, Comp_Typ1 = Att_Typ1 - Att_Typ1_Br)
+
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(comp_p = Comp_All/Att_All)
+pbar <- sum(AE_Data_fun_agg$Comp_All) / sum(AE_Data_fun_agg$Att_All)
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(pbar = pbar, st_err = sqrt(pbar*(1-pbar)/Att_All),
+                                              lcl = pbar-3*st_err, ucl = pbar+3*st_err)
+```
+
+# Table of performance  
+
+```{r}
+perf_table <- AE_Data_fun_agg %>% arrange(-comp_p) %>%
+  mutate(comp_p = percent(comp_p)) %>% select(Provider = Prov_Name,
+                                         `Total Attendances` = Att_All,
+                                         `No. < 4hrs` = Comp_All,
+                                         `4hr Performance` = comp_p)
+
+kable_table <- knitr::kable(perf_table, booktabs = TRUE) %>% kableExtra::kable_styling()
+kable_table %>% save_kable(file.path("data-out","perf-table.png"))
+kable_table
+```
+
+```{r}
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1744077/
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(z = (comp_p-pbar) / st_err)
+
+v_inf <- sum((AE_Data_fun_agg$z)^2)/nrow(AE_Data_fun_agg)
+st_err_inf <- sqrt(v_inf)
+
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(lcl_inf = pbar-3*st_err_inf*st_err,
+                                              ucl_inf = pbar+3*st_err_inf*st_err)
+```
+
+```{r}
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(winz = DescTools::Winsorize(z))
+
+v_inf_win <- sum((AE_Data_fun_agg$winz)^2)/nrow(AE_Data_fun_agg)
+st_err_inf_win <- sqrt(v_inf_win)
+
+AE_Data_fun_agg <- AE_Data_fun_agg %>% mutate(lcl_inf_win = pbar-3*st_err_inf_win*st_err,
+                                              ucl_inf_win = pbar+3*st_err_inf_win*st_err,
+                                              lcl2_inf_win = pbar-2*st_err_inf_win*st_err,
+                                              ucl2_inf_win = pbar+2*st_err_inf_win*st_err)
+```
+
+# Funnel plot of performance
+
+```{r funnel, fig.height=7, fig.width=9}
+AE_Data_fun_agg <- AE_Data_fun_agg %>% rowwise() %>%
+  mutate(prov_label = if_else(comp_p <= lcl2_inf_win | comp_p >= ucl2_inf_win,
+                              paste(sapply(str_split(Prov_Name, " ")[[1]],
+                                           abbreviate, 3), collapse = " "),
+                              NA_character_)) %>% ungroup()
+
+AE_Data_fun_agg %>% 
+  mutate () %>% 
+  ggplot(aes(x = Att_All, label = prov_label)) +
+  geom_point(aes(y=comp_p)) +
+  geom_line(aes(y=lcl_inf_win), linetype = "dashed", na.rm = TRUE) +
+  geom_line(aes(y=ucl_inf_win), linetype = "dashed", na.rm = TRUE) +
+  geom_line(aes(y=lcl2_inf_win), linetype = "dotted", na.rm = TRUE) +
+  geom_line(aes(y=ucl2_inf_win), linetype = "dotted", na.rm = TRUE) +
+  geom_line(aes(y=pbar)) +
+  theme_classic() +
+  geom_text(aes(y=comp_p, label=prov_label), hjust=-.035, vjust=1.5, size = 3.5, na.rm = TRUE) +
+  labs(title = "Funnel plot of 4-hr target performance by hospital",
+       subtitle = paste0(country, ", ", format(st.dt, "%d %B %Y"), " - ", format(ed.dt, "%d %B %Y")),
+       x = "Total attendances", y = "Percentage <4hrs") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0.5,1))
+```
+
+

@@ -7,3 +7,7 @@ data-raw/
 data-out/
 tests/test-data/
 logs/
+
+*.html
+*.log
+*.tex
