@@ -104,7 +104,7 @@ ui <- dashboardPage(
                   href="https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/"),
                 p("\n"),
                 a("A&E waiting times and activity for Scotland",
-                  href="http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id"),
+                  href="https://beta.isdscotland.org/find-publications-and-data/health-services/hospital-care/nhs-performs-weekly-update-of-emergency-department-activity-and-waiting-time-statistics/"),
                 p("\n"),
                 p("Note that due to the 'rapid care measures' pilot, data for some NHS England providers is not available from May 2019.
                   By default this analysis now excludes these providers for the whole time period. If you wish to see the analysis
