@@ -86,9 +86,11 @@ ui <- dashboardPage(
                 h1("Analysis of Accident and Emergency Attendance Data"),
                 #h4("NHS England Provider Organisations"), ###needs to be updated for Scotland
                 h4(uiOutput("subtitle")),
-                fluidRow(column(width = 12,
+                fluidRow(shinyjs::useShinyjs(), 
+                         column(width = 12,
                                 box(plotOutput("edPerfPlot"), width = NULL),
-                                box(plotOutput("edVolPlot"), width = NULL)
+                                box(plotOutput("edVolPlot"), width = NULL),
+                                box(id = "admissionsPlot", plotOutput("edAdmVolPlot"), width = NULL)
                                 )
                          ),
                downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
@@ -179,6 +181,16 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
+  
+  #currently no admissions data for Scotland so hides admissions graph
+  observeEvent(input$country, {
+    if(input$country == "England"){
+      shinyjs::show(id = "admissionsPlot")
+    }else{
+      shinyjs::hide(id = "admissionsPlot")
+      shinyjs::hide(id = "downloadButt")
+    }
+  })
   
   # If new data has been released since the app was launched,
   # download it
@@ -284,7 +296,7 @@ server <- function(input, output) {
     print(edPerfPlotInput())
   })
   
-  edVolPlotInput <- function() {
+  edVolPlotInput <- function(volumeType = "Attendances") {
     if (length(input$trust) != 0 & length(input$level) != 0) {
       level <- input$level
       if(level == "Provider"){
@@ -303,18 +315,36 @@ server <- function(input, output) {
       weeklyOrMonthly <- "Monthly"
       if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
       if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
-      tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
-                           brk.date = perf.brk.date, date.col = 'Month_Start',
-                           x_title = "Month", measure = measure,
-                           r1_col = r1_col, r2_col=r2_col,
-                           level = level, weeklyOrMonthly = weeklyOrMonthly,
-                           onlyProvsReporting = onlyProvsReporting), 
-               error=function(e) NULL)
+      
+      if(volumeType == "Attendances"){
+        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+                             brk.date = perf.brk.date, date.col = 'Month_Start',
+                             x_title = "Month", measure = measure,
+                             r1_col = r1_col, r2_col=r2_col,
+                             level = level, weeklyOrMonthly = weeklyOrMonthly,
+                             onlyProvsReporting = onlyProvsReporting,
+                             attOrAdm = "Attendances"), 
+                 error=function(e) NULL)
+      }else{
+        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+                             brk.date = perf.brk.date, date.col = 'Month_Start',
+                             x_title = "Month", measure = measure,
+                             r1_col = r1_col, r2_col=r2_col,
+                             level = level, weeklyOrMonthly = weeklyOrMonthly,
+                             onlyProvsReporting = onlyProvsReporting,
+                             attOrAdm = "Admissions"), 
+                 error=function(e) NULL)
+      }
+      
     }
   }
   
   output$edVolPlot <- renderPlot({
-    print(edVolPlotInput())
+    print(edVolPlotInput(volumeType = "Attendances"))
+  })
+  
+  output$edAdmVolPlot <- renderPlot({
+    print(edVolPlotInput(volumeType = "Admissions"))
   })
   
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
