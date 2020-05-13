@@ -174,7 +174,8 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
   if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100)
+    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100,
+                          freeze = 24)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y, label = x))
@@ -229,7 +230,10 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       labs(x= x_title, y="Percentage within 4 hours", 
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
+      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2) +
+      geom_vline(xintercept = as.Date("2017-06-15")) +
+      annotate("text", x = as.Date("2017-06-15"), y = 100, vjust = 0, 
+               hjust = 1.1, label = "Baseline")
     
   } else {df}
 }
@@ -269,7 +273,8 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
 
   if (is.null(brk.date)) {
     #Total is replaced with the new col "daily_ave"
-    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up')
+    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up',
+                          freeze = 24)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -327,7 +332,10 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         label = comma) 
+                         label = comma) +
+      geom_vline(xintercept = as.Date("2017-06-15")) +
+      annotate("text", x = as.Date("2017-06-15"), y = 100, vjust = 0, 
+               hjust = 1.1, label = "Baseline")
     
   } else {df}
 }
