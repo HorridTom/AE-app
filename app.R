@@ -122,6 +122,8 @@ ui <- dashboardPage(
                 p("Note that NHS Scotland data is provided weekly, and may be analysed either weekly as-is, or attributed
                   across months and analysed monthly. Tick/untick the 'Weekly analysis' box to toggle between these
                   two analysis modes."),
+                p("\n"),
+                p("Note that Scottish data for admissions is not currently publically available and therefore admissions charts are not included in the analysis for Scotland."),
                 h2("Shewhart Charts"),
                 p("The analysis uses Shewhart charts, also known as control charts. There
                   is a brief explanation of this approach below, for more information
