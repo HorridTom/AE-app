@@ -101,7 +101,7 @@ ui <- dashboardPage(
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
-                p("This application provides statistical analysis of attendance data relating
+                p("This application provides statistical analysis of attendance and admission data relating
                   to providers of NHS accident and emergency department services in England and Scotland."),
                 p("All the data used
                 is publicly available from the NHS England and ISD Scotland websites:"),
