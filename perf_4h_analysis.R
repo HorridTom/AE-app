@@ -307,10 +307,9 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   # chart y limit
   ylimlow <- 0
-  #Total is replaced with the new col "daily_ave"
   ylimhigh <- ifelse(attOrAdm == "Attendances",
-                     1000*ceiling(max(df_all$daily_ave_att)*1.1/1000),
-                     1000*ceiling(max(df_all$daily_ave_adm)*1.1/1000))
+                     ceiling(max(df_all$daily_ave_att)*1.1),
+                     ceiling(max(df_all$daily_ave_adm)*1.1))
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
@@ -346,7 +345,9 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         label = comma) 
+                         breaks = breaks_pretty(),
+                         labels = number_format(accuracy = 1, big.mark = ",")
+                         ) 
     
   } else {df}
 }
