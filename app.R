@@ -76,7 +76,7 @@ ui <- dashboardPage(
       )
     ),
 
-   dashboardBody(
+   dashboardBody(shinyjs::useShinyjs(),
     # No CSS styling for now
     #tags$head(
     #   tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
@@ -86,17 +86,22 @@ ui <- dashboardPage(
                 h1("Analysis of Accident and Emergency Attendance Data"),
                 #h4("NHS England Provider Organisations"), ###needs to be updated for Scotland
                 h4(uiOutput("subtitle")),
-                fluidRow(column(width = 12,
+                fluidRow( 
+                         column(width = 12,
                                 box(plotOutput("edPerfPlot"), width = NULL),
-                                box(plotOutput("edVolPlot"), width = NULL)
+                                box(plotOutput("edVolPlot"), width = NULL),
+                                box(id = "admissionsPlot", plotOutput("edAdmVolPlot"), width = NULL)
                                 )
                          ),
-               downloadButton('downloadPerfPlot', 'Download Performance Chart'), 
-               downloadButton('downloadVolPlot', 'Download Attendances Chart')
+               downloadButton('downloadPerfPlot', label = 'Download Performance Chart'), 
+               downloadButton('downloadVolPlot', label = 'Download Attendances Chart'),
+               conditionalPanel(condition = "input.tabs === 'analysis' & input.country == 'England'",
+                                uiOutput("downButt")
+               )
         ),
         tabItem(tabName = "understanding",
                 h1("Understanding the analysis"),
-                p("This application provides statistical analysis of attendance data relating
+                p("This application provides statistical analysis of attendance and admission data relating
                   to providers of NHS accident and emergency department services in England and Scotland."),
                 p("All the data used
                 is publicly available from the NHS England and ISD Scotland websites:"),
@@ -117,6 +122,8 @@ ui <- dashboardPage(
                 p("Note that NHS Scotland data is provided weekly, and may be analysed either weekly as-is, or attributed
                   across months and analysed monthly. Tick/untick the 'Weekly analysis' box to toggle between these
                   two analysis modes."),
+                p("\n"),
+                p("Note that Scottish data for admissions is not currently publically available and therefore admissions charts are not included in the analysis for Scotland."),
                 h2("Shewhart Charts"),
                 p("The analysis uses Shewhart charts, also known as control charts. There
                   is a brief explanation of this approach below, for more information
@@ -179,6 +186,15 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
+  
+  #currently no admissions data for Scotland so hides admissions graph
+  observeEvent(input$country, {
+    if(input$country == "England"){
+      shinyjs::show(id = "admissionsPlot")
+    }else{
+      shinyjs::hide(id = "admissionsPlot")
+    }
+  })
   
   # If new data has been released since the app was launched,
   # download it
@@ -249,6 +265,7 @@ server <- function(input, output) {
   output$regChoiceScot <- renderUI({selectInput("regionScot", "Choose Board", regNamesScot)})
   output$menuItemAn <- renderUI({menuItem("Understanding the analysis", tabName = "understanding", icon = icon('info-circle'))})
   output$menuItemDev <- renderUI({menuItem("Development", tabName = "dev", icon = icon('road'))})
+  output$downButt <- renderUI({downloadButton('downloadAdmVolPlot', 'Download Admissions Chart')})
   
 
   edPerfPlotInput <- function() {
@@ -284,7 +301,7 @@ server <- function(input, output) {
     print(edPerfPlotInput())
   })
   
-  edVolPlotInput <- function() {
+  edVolPlotInput <- function(volumeType = "Attendances") {
     if (length(input$trust) != 0 & length(input$level) != 0) {
       level <- input$level
       if(level == "Provider"){
@@ -303,49 +320,41 @@ server <- function(input, output) {
       weeklyOrMonthly <- "Monthly"
       if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
       if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
-      tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
-                           brk.date = perf.brk.date, date.col = 'Month_Start',
-                           x_title = "Month", measure = measure,
-                           r1_col = r1_col, r2_col=r2_col,
-                           level = level, weeklyOrMonthly = weeklyOrMonthly,
-                           onlyProvsReporting = onlyProvsReporting), 
-               error=function(e) NULL)
+      
+      if(volumeType == "Attendances"){
+        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+                             brk.date = perf.brk.date, date.col = 'Month_Start',
+                             x_title = "Month", measure = measure,
+                             r1_col = r1_col, r2_col=r2_col,
+                             level = level, weeklyOrMonthly = weeklyOrMonthly,
+                             onlyProvsReporting = onlyProvsReporting,
+                             attOrAdm = "Attendances"), 
+                 error=function(e) NULL)
+      }else{
+        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+                             brk.date = perf.brk.date, date.col = 'Month_Start',
+                             x_title = "Month", measure = measure,
+                             r1_col = r1_col, r2_col=r2_col,
+                             level = level, weeklyOrMonthly = weeklyOrMonthly,
+                             onlyProvsReporting = onlyProvsReporting,
+                             attOrAdm = "Admissions"), 
+                 error=function(e) NULL)
+      }
+      
     }
   }
   
   output$edVolPlot <- renderPlot({
-    print(edVolPlotInput())
+    print(edVolPlotInput(volumeType = "Attendances"))
+  })
+  
+  output$edAdmVolPlot <- renderPlot({
+    print(edVolPlotInput(volumeType = "Admissions"))
   })
   
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
   output$downloadPerfPlot <- downloadHandler( 
-    filename = function() {
-      if(input$country == "England"){
-        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
-                     ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
-                            provLookup[which(provLookup$Country == input$country),'Country']))
-        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
-        
-      }else{
-        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
-                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
-                              provLookup[which(provLookup$Country == input$country),'Country']))
-        
-        typ <- ""
-      }
-      
-      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-            "_PerfPlot_",typ,"_",
-            perf.start.date,"/",perf.end.date,".png", sep = "")
-    },
-    content = function(file){
-      png(file, width = 10, height = 5.5, units = 'in', res = 300) 
-      print(edPerfPlotInput())
-      dev.off()
-    })
-  
-  output$downloadVolPlot <- downloadHandler(
-    filename = function() {
+    filename = function(plot = "Performance") {
       if(input$country == "England"){
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
@@ -359,13 +368,69 @@ server <- function(input, output) {
         typ <- ""
       }
       
+      plotTypeName <- ifelse(plot == "Performance", "_PerfPlot_", ifelse(plot == "Attendances", "_AttendPlot_", "_AdmissPlot_"))
+      
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
-            "_AttendPlot_",typ,"_",
+            plotTypeName,typ,"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
+    },
+    content = function(file){
+      png(file, width = 10, height = 5.5, units = 'in', res = 300) 
+      print(edPerfPlotInput())
+      dev.off()
+    })
+  
+  output$downloadVolPlot <- downloadHandler(
+    filename = function(plot = "Attendances") {
+      if(input$country == "England"){
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
+        
+      }else{
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ""
+      }
+      
+      plotTypeName <- ifelse(plot == "Performance", "_PerfPlot_", ifelse(plot == "Attendances", "_AttendPlot_", "_AdmissPlot_"))
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
+            plotTypeName,typ,"_",
             perf.start.date,"/",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
-      print(edVolPlotInput())
+      print(edVolPlotInput(volumeType = "Attendances"))
+      dev.off()
+    })
+  
+  output$downloadAdmVolPlot <- downloadHandler(
+    filename = function(plot = "Admissions") {
+      if(input$country == "England"){
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
+        
+      }else{
+        name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
+                       ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$regionScot),'Region'], 
+                              provLookup[which(provLookup$Country == input$country),'Country']))
+        typ <- ""
+      }
+      
+      plotTypeName <- ifelse(plot == "Performance", "_PerfPlot_", ifelse(plot == "Attendances", "_AttendPlot_", "_AdmissPlot_"))
+      
+      paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
+            plotTypeName,typ,"_",
+            perf.start.date,"/",perf.end.date,".png", sep = "")
+    },
+    content = function(file) {
+      png(file, width = 10, height = 5, units = 'in', res = 300) 
+      print(edVolPlotInput(volumeType = "Admissions"))
       dev.off()
     })
 

@@ -24,7 +24,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
   if(df[1,"Nat_Code"] == "S"){
     perf_series <- df %>%
       select(Code, Month_Start, Name, Nat_Code,
-             Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All)
+             Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total_Att = Att_All,Total_Adm = E_Adm_All_ED)
     if(weeklyOrMonthly != "weekly"){
       perf_series <- weekly_to_monthly(perf_series)
     }
@@ -32,23 +32,27 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
     perf_series <- switch(measure,
                           All = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total = Att_All),
+                                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total_Att = Att_All,
+                                   Total_Adm = E_Adm_All_ED),
                           Typ1 = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total = Att_Typ1),
-                          Adm = df %>%
-                            select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED)
+                                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total_Att = Att_Typ1,
+                                   Total_Adm = E_Adm_Typ1)#,
+                          # Adm = df %>%
+                          #   select(Code, Month_Start, Name, Nat_Code,
+                          #          Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED,
+                          #          E_Adm_Typ1, E_Adm_All_ED)
     )
   }
   
-  perf_series %>% mutate(Performance = Within_4h / Total) %>%
+  perf_series %>% mutate(Performance = Within_4h / Total_Att) %>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
     #two new cols: 
     #if National code - i.e. Scotland $ weekly, return number of days - i.e. 7
     #else return number of days in a months
     arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(df$Month_Start))) %>%
-    mutate(daily_ave = Total/days_in_period)
+    mutate(daily_ave_att = Total_Att/days_in_period) %>%
+    mutate(daily_ave_adm = Total_Adm/days_in_period)
   
 }
 
@@ -131,11 +135,13 @@ weekly_to_monthly <- function(df){
   Within_4h <- Within_4h_df$value
   Greater_4h_df <- weekToMonth(df$Greater_4h, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
   Greater_4h <- Greater_4h_df$value
-  Total_df <- weekToMonth(df$Total, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
-  Total <- Total_df$value
-  Month_Start <- Total_df$yearMonth
+  TotalAtt_df <- weekToMonth(df$Total_Att, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
+  Total_Att <- TotalAtt_df$value
+  TotalAdm_df <- weekToMonth(df$Total_Adm, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
+  Total_Adm <- TotalAdm_df$value
+  Month_Start <- TotalAtt_df$yearMonth
   
-  dfMonthly <- data.frame(Month_Start, Within_4h, Greater_4h, Total)
+  dfMonthly <- data.frame(Month_Start, Within_4h, Greater_4h, Total_Att, Total_Adm)
   dfMonthly <- dfMonthly %>%
     mutate(Code = df$Code[nrow(df)], Name = df$Name[nrow(df)], Nat_Code = df$Nat_Code[nrow(df)]) %>%
     filter(row_number() != 1 & row_number() != nrow(dfMonthly)) %>% 
@@ -174,7 +180,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
   if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100)
+    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y, label = x))
@@ -184,7 +190,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
     v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
     
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total, data = df, chart = 'pp', multiply = 100,
+    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100,
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
@@ -225,7 +231,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste(levelTitle, pr_name, typeTitle, reportingTitle)) +  
+      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
       labs(x= x_title, y="Percentage within 4 hours", 
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
@@ -242,10 +248,15 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
                              weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting) { 
+                             onlyProvsReporting = onlyProvsReporting,
+                             attOrAdm = "Attendances") { 
   
-  #cht_title = "Number of A&E attendances"
-  cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
+  if(attOrAdm == "Attendances"){
+    cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
+  }else{
+    cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily admissions from A&E per week", "Average daily admissions from A&E per month")
+  }
+
   
   df_original <- df
   df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
@@ -269,7 +280,12 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
 
   if (is.null(brk.date)) {
     #Total is replaced with the new col "daily_ave"
-    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up')
+    if(attOrAdm == "Attendances"){
+      pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+    }else{
+      pct <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
+    }
+    
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -280,8 +296,9 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     br.row <- which(v == max(v[v < br.dt]))
     
     #Total is replaced with the new col "daily_ave"
-    pct <- qicharts2::qic(Month_Start, daily_ave, n = rep(1, nrow(df)), data = df, chart = 'up',
-                          freeze = br.row)
+    pct <- ifelse(attOrAdm == "Attendances",
+                  qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row),
+                  qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row))
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -290,8 +307,9 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   # chart y limit
   ylimlow <- 0
-  #Total is replaced with the new col "daily_ave"
-  ylimhigh <- 1000*ceiling(max(df_all$daily_ave)*1.1/1000)
+  ylimhigh <- ifelse(attOrAdm == "Attendances",
+                     ceiling(max(df_all$daily_ave_att)*1.1),
+                     ceiling(max(df_all$daily_ave_adm)*1.1))
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
@@ -322,12 +340,14 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste(levelTitle, pr_name, typeTitle, reportingTitle)) + 
-      labs(x= x_title, y="Average daily attendances",
+      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
+      labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         label = comma) 
+                         breaks = breaks_pretty(),
+                         labels = number_format(accuracy = 1, big.mark = ",")
+                         ) 
     
   } else {df}
 }
