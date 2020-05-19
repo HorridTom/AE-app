@@ -4,7 +4,6 @@ library(tidyverse)
 library(stringr)
 library(RMySQL)
 library(DBI)
-library(nhsAEscraper)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
