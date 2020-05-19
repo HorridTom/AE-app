@@ -5,8 +5,6 @@ library(stringr)
 library(RMySQL)
 library(DBI)
 library(nhsAEscraper)
-#devtools::install_github("ImogenConnorHelleur/nhsAEscraper", ref = "enhancement-england-and-scotland-scraper")
-#library(nhsAEscraperScotland)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
@@ -16,23 +14,17 @@ update_data = T
 r1_col = "orange"
 r2_col = "steelblue3"
 
-#urls_of_data <- NULL
-
-  # urls_of_data <- nhsAEscraper::getAEdata_urls_monthly(country = "England")
-  # urls_of_Scotland_data <- nhsAEscraper::getAEdata_urls_monthly(country = "Scotland")
-
-# Helper for getting new connection to Cloud SQL
+#Function for getting new connection to Cloud SQL
 getSqlConnection <- function(){
-  con <-
+  conn <-
     dbConnect(
       RMySQL::MySQL(),
       username = 'ae-app-user',
       password = 'ARCNWL',
       host = '35.187.46.164',
-      #host = '127.0.0.1',
       dbname = 'AEAppDatabase'
-    ) # TODO: use a configuration group `group = "my-db")`
-  return(con)
+    ) 
+  return(conn)
 }
 
 conn <- getSqlConnection()
@@ -42,21 +34,15 @@ conn <- getSqlConnection()
     assign("AE_Data", AE_Data, envir = .GlobalEnv)
     
     query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
-    ##n=-1 argument ensures all rows are returned
     AE_Data_Scot <- dbFetch(query_scot, n=-1)
     assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     
-    query_url <- dbSendQuery(conn, "select * from urls_of_data")
-    urls_of_data <- dbFetch(query_url, n=-1)
-    
-    query_url_scot <- dbSendQuery(conn, "select * from urls_of_Scotland_data")
-    urls_of_Scotland_data <- dbFetch(query_url_scot, n=-1)
+    urls_of_data <- unique(AE_Data$SourceFile)
+    urls_of_Scotland_data <- unique(AE_Data_Scot$SourceFile)
 
 dbDisconnect(conn)
 
-#AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
 AE_Data <- clean_region_col(AE_Data)
-#AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
 AE_Data_Scot <- standardise_data(AE_Data_Scot)
 
 AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
