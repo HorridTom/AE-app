@@ -10,7 +10,6 @@ Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
 source("perf_4h_analysis.R")
 
-update_data = T
 r1_col = "orange"
 r2_col = "steelblue3"
 
@@ -37,9 +36,6 @@ conn <- getSqlConnection()
     AE_Data_Scot <- dbFetch(query_scot, n=-1)
     assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     
-    urls_of_data <- unique(AE_Data$SourceFile)
-    urls_of_Scotland_data <- unique(AE_Data_Scot$SourceFile)
-
 dbDisconnect(conn)
 
 AE_Data <- clean_region_col(AE_Data)
@@ -48,8 +44,6 @@ AE_Data_Scot <- standardise_data(AE_Data_Scot)
 AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
 assign("AE_Data", AE_Data, envir = .GlobalEnv)
 assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
-assign("urls_of_data_obtained", urls_of_data, envir = .GlobalEnv)
-assign("urls_of_Scotland_data_obtained", urls_of_Scotland_data, envir = .GlobalEnv)
 
 # Define UI
 ui <- dashboardPage(
@@ -199,43 +193,6 @@ ui <- dashboardPage(
 
 # Define server logic
 server <- function(input, output) {
-  
-  # If new data has been released since the app was launched,
-  # download it
-  # if(update_data) {
-  #  current_data_urls <- nhsAEscraper::getAEdata_urls_monthly(country = "England")
-  #  current_Scotland_data_urls <- nhsAEscraper::getAEdata_urls_monthly(country = "Scotland")
-  # } else {
-  #     current_data_urls <- NULL
-  #     current_Scotland_data_url <- NULL
-  # }
-  
-  current_data_urls <- urls_of_data
-  current_Scotland_data_urls <- urls_of_Scotland_data
-  
-  # Need to separate the updates for the different websites
-  # To do this, need to store data for each country in a separate folder
-  # For now, update both when either changes
-  # This whole functionality will need redoing ultimately, to use persistent storage
-  if (!setequal(urls_of_data_obtained, current_data_urls) ||
-      !setequal(urls_of_Scotland_data_obtained, current_Scotland_data_urls)) {
-    file.remove(
-      dir('data-raw',
-          pattern = "*",
-          full.names = TRUE)
-      )
-
-    AE_Data <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "England")
-    AE_Data <- clean_region_col(AE_Data)
-    AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = update_data, directory = 'data-raw', country = "Scotland")
-    AE_Data_Scot <- standardise_data(AE_Data_Scot)
-    
-    AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
-    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
-    assign("AE_Data", AE_Data, envir = .GlobalEnv)
-    assign("urls_of_data_obtained", current_data_urls, envir = .GlobalEnv)
-    assign("urls_of_Scotland_data_obtained", current_Scotland_data_urls, envir = .GlobalEnv)
-  }
   
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
   provLookup <- provLookup %>% arrange(Prov_Name) 
