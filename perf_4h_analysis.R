@@ -187,17 +187,22 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       select(x,ucl,lcl, cl)
     pct_full <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
     pct_recal <- pct_full$data %>%
-      left_join(pct_firstPeriod, by = "x") %>%
-      mutate(limitType = "first24")
+      left_join(pct_firstPeriod, by = "x") 
+    pct_recal[0:24,"limitType1"] <- "first24" 
     
-    #lock limits for next points after the first 24 until there is a Rule 2 break (currently manual detetction of rule break)
-    pct_recal[25:40,"ucl.y"] <- pct_recal[24, "ucl.y"]
-    pct_recal[25:40,"lcl.y"] <- pct_recal[24, "lcl.y"]
-    pct_recal[25:40,"cl.y"] <- pct_recal[24, "cl.y"]
-    pct_recal[25:40,"limitType"] <- "lockedFirst24" 
+    # ##lock limits for next points after the first 24 until there is a Rule 2 break (currently manual detetction of rule break)
+    # pct_recal[25:41,"ucl.y"] <- pct_recal[24, "ucl.y"]
+    # pct_recal[25:41,"lcl.y"] <- pct_recal[24, "lcl.y"]
+    # pct_recal[25:41,"cl.y"] <- pct_recal[24, "cl.y"]
+    # pct_recal[24:41,"limitType2"] <- "lockedFirst24"
+    pct_recal[25:30,"ucl.y"] <- pct_recal[24, "ucl.y"]
+    pct_recal[25:30,"lcl.y"] <- pct_recal[24, "lcl.y"]
+    pct_recal[25:30,"cl.y"] <- pct_recal[24, "cl.y"]
+    pct_recal[24:30,"limitType2"] <- "lockedFirst24"
     
     #recalculate limits for period after rule break
-    pct_ruleBreak <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df[41:59,], chart = 'pp', multiply = 100)
+    #pct_ruleBreak <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df[41:59,], chart = 'pp', multiply = 100)
+    pct_ruleBreak <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df[30:59,], chart = 'pp', multiply = 100)
     pct_ruleBreak <- pct_ruleBreak$data %>%
       select(x,ucl,lcl, cl)
     pct_recal <- pct_recal %>%
@@ -205,14 +210,13 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       mutate(ucl = ifelse(is.na(ucl), ucl.y, ucl)) %>%
       mutate(lcl = ifelse(is.na(lcl), lcl.y, lcl)) %>%
       mutate(cl = ifelse(is.na(cl), cl.y, cl))
-    pct_recal[41:59,"limitType"] <- "recalculated" 
+    #pct_recal[41:59,"limitType3"] <- "first24" 
+    pct_recal[30:59,"limitType3"] <- "first24" 
     
     pct$data <- pct_recal
+    #pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
     
     ###########
-    
-    
-    #pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100, part = 24)
     
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
@@ -261,7 +265,6 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   if(plot.chart == TRUE) {
       format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
-      geom_vline(aes(xintercept = as.Date("2017-06-01"))) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
@@ -317,10 +320,48 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   if (is.null(brk.date)) {
     #Total is replaced with the new col "daily_ave"
     if(attOrAdm == "Attendances"){
-      pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+      pct_firstPeriod <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, 24), data = df[1:24,], chart = 'up') 
+      pct_full <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
     }else{
-      pct <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
+      pct_firstPeriod <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, 24), data = df[1:24,], chart = 'up')
+      pct_full <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
     }
+    
+    ##########
+    #calculate limits for first 24 points
+    pct_firstPeriod <- pct_firstPeriod$data %>%
+      select(x,ucl,lcl, cl)
+    pct_recal <- pct_full$data %>%
+      left_join(pct_firstPeriod, by = "x") 
+    pct_recal[0:24,"limitType1"] <- "first24" 
+    
+    # ##lock limits for next points after the first 24 until there is a Rule 2 break (currently manual detetction of rule break)
+    pct_recal[25:34,"ucl.y"] <- pct_recal[24, "ucl.y"]
+    pct_recal[25:34,"lcl.y"] <- pct_recal[24, "lcl.y"]
+    pct_recal[25:34,"cl.y"] <- pct_recal[24, "cl.y"]
+    pct_recal[24:35,"limitType2"] <- "lockedFirst24"
+    
+    #recalculate limits for period after rule break
+    if(attOrAdm == "Attendances"){
+      pct_ruleBreak <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, 25), data = df[35:59,], chart = 'up') 
+    }else{
+      pct_ruleBreak <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, 25), data = df[35:59,], chart = 'up')
+    }
+    pct_ruleBreak <- pct_ruleBreak$data %>%
+      select(x,ucl,lcl, cl)
+    pct_recal <- pct_recal %>%
+      left_join(pct_ruleBreak, by = "x") %>%
+      mutate(ucl = ifelse(is.na(ucl), ucl.y, ucl)) %>%
+      mutate(lcl = ifelse(is.na(lcl), lcl.y, lcl)) %>%
+      mutate(cl = ifelse(is.na(cl), cl.y, cl))
+    #pct_recal[41:59,"limitType3"] <- "first24" 
+    pct_recal[35:59,"limitType3"] <- "first24" 
+    
+    pct$data <- pct_recal
+    #pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+    
+    ###########
+    
     
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
@@ -391,10 +432,19 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
 format_control_chart <- function(cht, r1_col, r2_col) {
   point_colours <- c("Rule 1" = r1_col, "Rule 2" = r2_col, "None" = "black")
   cht + 
-    geom_line(colour = "black", size = .5) + 
-    geom_line(aes(x,cl, linetype = limitType), size = 0.75) +
-    geom_line(aes(x,ucl, linetype = limitType), size = 0.75) +
-    geom_line(aes(x,lcl, linetype = limitType), size = 0.75) +
+    geom_line(colour = "black", size = 0.5) + 
+    geom_line(aes(x,cl, linetype = limitType1), size = 0.75) +
+    geom_line(aes(x,ucl, linetype = limitType1), size = 0.5) +
+    geom_line(aes(x,lcl, linetype = limitType1), size = 0.5) +
+    geom_line(aes(x,cl, linetype = limitType2), size = 0.75) +
+    geom_line(aes(x,ucl, linetype = limitType2), size = 0.75) +
+    geom_line(aes(x,lcl, linetype = limitType2), size = 0.75) +
+    geom_line(aes(x,cl, linetype = limitType3), size = 0.75) +
+    geom_line(aes(x,ucl, linetype = limitType3), size = 0.5) +
+    geom_line(aes(x,lcl, linetype = limitType3), size = 0.5) +
+    # geom_line(aes(x,cl), size = 0.75, linetype = 2) +
+    # geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
+    # geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
     geom_point(aes(colour = highlight), size = 2) +
     scale_color_manual("Rule triggered*", values = point_colours) + 
     theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_line(colour = "grey80"),
