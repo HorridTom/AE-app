@@ -6,6 +6,8 @@ library(scales)
 library(zoo)
 library(lubridate)
 library(wktmo)
+library(grid)
+library(gridExtra)
 
 make_perf_series <- function(df, code = "RQM", measure = "All", level, 
                              weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
@@ -149,16 +151,17 @@ weekly_to_monthly <- function(df){
   
 }
 
-plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
+plot_performance <- function(df = AE_Data, df_recal,
+                             code = "E", date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2020-06-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
-                             level = level, weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting,
+                             level = "National", weeklyOrMonthly = "Monthly",
+                             onlyProvsReporting = T,
                              breakPoint = 41,
-                             ymin, ymax) { 
+                             ymin = 70, ymax = 100) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
@@ -216,13 +219,13 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
     pct_recal[57:59,"cl"] <- pct_recal[56, "cl"]
     pct_recal[56:59,"limitType4"] <- "post-period locked" 
     
-    pct$data <- pct_recal
-    #pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
+    pct_recal <- df_recal
+    #pct$data <- pct_recal
     
     ###########
     
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
+    pct_recal$x <- as.Date(pct_recal$x, tz = 'Europe/London')
+    cht_data <- add_rule_breaks(pct_recal)
     pct <- ggplot(cht_data, aes(x,y, label = x))
   } else {
     br.dt <- as.Date(brk.date)
@@ -258,9 +261,9 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
-    reportingTitle <- "\nIncludes only providers that are still reporting"
+    reportingTitle <- "Includes only providers that are still reporting"
   }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
-    reportingTitle <- "\nIncludes providers that are no longer reporting"
+    reportingTitle <- "Includes providers that are no longer reporting"
   }else{
     reportingTitle <- ""
   }
@@ -270,31 +273,38 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
+      annotate("text", ed.dt - 90, 93, vjust = -2, label = "95% Target", colour = '#00BB00') +
+      #ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
+      ggtitle(cht_title, subtitle = paste0(reportingTitle)) + 
       labs(x= x_title, y="Percentage within 4 hours", 
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       scale_y_continuous(expand = c(0,0)) +
       #ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
+      #geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2) +
+      facet_grid(country ~.) +
+      theme(panel.spacing = unit(2, "lines"),
+            strip.background = element_rect(fill = "steelblue"),
+            strip.text.y = element_text(colour = "white"))
     
   } else {df}
   
-  return(pct_recal)
+  #return(pct)
 }
 
 
-plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
+plot_volume <- function(df, df_recal,
+                        code = "E", date.col = 'Month_Start',
                              start.date = "2015-07-01", end.date = "2020-06-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
-                             r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
+                             r1_col = "orange", r2_col = "steelblue3", level = "National", 
                              weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting,
+                             onlyProvsReporting = T,
                              attOrAdm = "Attendances",
-                             breakPoint = 35,
-                             ymin, ymax) { 
+                             breakPoint = 35#,
+                             #ymin = 0, ymax = 80000, ymaxScot = 4720
+                        ) { 
   
   if(attOrAdm == "Attendances"){
     cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
@@ -370,12 +380,12 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       pct_recal[57:59,"cl"] <- pct_recal[56, "cl"]
       pct_recal[56:59,"limitType4"] <- "post-period locked"
       
-      pct$data <- pct_recal
-      #pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+      pct_recal <- df_recal
+      #pct$data <- pct_recal
       
       ###########
-      pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-      cht_data <- add_rule_breaks(pct$data)
+      pct_recal$x <- as.Date(pct_recal$x, tz = 'Europe/London')
+      cht_data <- add_rule_breaks(pct_recal)
       pct <- ggplot(cht_data, aes(x,y))
     } else {
       br.dt <- as.Date(brk.date)
@@ -425,22 +435,29 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin, ymax) + 
+      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow, ymax = ylimhigh) + 
+      geom_blank(data=dummy, aes(x, y)) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
       labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
-      scale_y_continuous(limits = c(ylimlow, ylimhigh),
+      scale_y_continuous(#limits = c(ylimlow, ylimhigh),
                          breaks = breaks_pretty(),
                          labels = number_format(accuracy = 1, big.mark = ","),
                          expand = c(0,0)
-                         ) 
+                         ) +
+      facet_grid(country ~.,
+                 scales = "free_y") +
+      theme(panel.spacing = unit(2, "lines"),
+            strip.background = element_rect(fill = "steelblue"),
+            strip.text.y = element_text(colour = "white")) 
     
   } else {df}
   
-  return(pct_recal)
+  #return(pct_recal)
+  #return(ylimhigh)
 }
 
 format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
@@ -473,20 +490,24 @@ format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
               axis.line = element_line(colour = "grey60"),
               plot.caption = element_text(size = 10, hjust = 0.5))  +
     annotate("rect", xmin = as.Date("2020-03-01"), xmax = as.Date("2020-07-01"), 
-             ymin = ymin, ymax = ymax, 
+             # ymin = 0, ymax = Inf, 
+             ymin = ymin, ymax = ymax,
              alpha = 0.2) 
 }
 
 
-p1 <- plot_performance(AE_Data, code = "E", level = "National", onlyProvsReporting = T, 
-                      breakPoint = 30, ymin = 60, ymax = 100)
-q1 <- plot_performance(AE_Data, code = "S", level = "National", onlyProvsReporting = T, 
-                      breakPoint = 30, ymin = 60, ymax = 100)
-r1 <-plot_volume(df = AE_Data, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances", 
-                breakPoint = 34, ymin = 0, ymax = 80000)
-s1 <-plot_volume(df = AE_Data, code = "S", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances", 
-                breakPoint = 34, ymin = 0, ymax = 4720)
+# p1 <- plot_performance(AE_Data, code = "E", level = "National", onlyProvsReporting = T,
+#                       breakPoint = 30, ymin = 60, ymax = 100)
+# q1 <- plot_performance(AE_Data, code = "S", level = "National", onlyProvsReporting = T,
+#                       breakPoint = 30, ymin = 60, ymax = 100)
+# r1 <-plot_volume(df = AE_Data, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",
+#                 breakPoint = 34, ymin = 0, ymax = 80000)
+# s1 <-plot_volume(df = AE_Data, code = "S", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",
+#                 breakPoint = 34, ymin = 0, ymax = 4720)
 
+
+#plot_performance(df_recal = p1All, code = "S", breakPoint = 30)
+#plot_volume(df = AE_Data, df_recal = r1All, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",breakPoint = 34)
  
 # library(rvg)
 # library(officer)
