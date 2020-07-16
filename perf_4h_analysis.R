@@ -7,13 +7,14 @@ library(zoo)
 library(lubridate)
 library(wktmo)
 
-make_perf_series <- function(df, code = "RQM", measure = "All", level, 
+make_perf_series <- function(df, code = "RQM", measure = "All", level = "Provider", 
                              weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
   
+  #aggregates data into regions if level is "National" or "Regional"
   df <- regional_analysis(df, level, onlyProvsReporting)
   df <- filter(df, Code == code)
   
-  # Make new variables
+  #Make new variables
     df <- df %>% mutate(Att_Typ1_NotBr = Att_Typ1 - Att_Typ1_Br,
                       Att_Typ2_NotBr = Att_Typ2 - Att_Typ2_Br,
                       Att_Typ3_NotBr = Att_Typ3 - Att_Typ3_Br,
@@ -21,30 +22,31 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
                       E_Adm_Not4hBr_D = E_Adm_All_ED - E_Adm_4hBr_D) 
   
 
+  #Allows for the different options for each country i.e.Scottish weekly data, English data on Type 
   if(df[1,"Nat_Code"] == "S"){
     perf_series <- df %>%
       select(Code, Month_Start, Name, Nat_Code,
-             Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total_Att = Att_All,Total_Adm = E_Adm_All_ED)
+             Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, 
+             Total_Att = Att_All, Total_Adm = E_Adm_All_ED)
+    
     if(weeklyOrMonthly != "weekly"){
       perf_series <- weekly_to_monthly(perf_series)
     }
+    
   }else{
     perf_series <- switch(measure,
                           All = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total_Att = Att_All,
-                                   Total_Adm = E_Adm_All_ED),
+                                   Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, 
+                                   Total_Att = Att_All, Total_Adm = E_Adm_All_ED),
                           Typ1 = df %>%
                             select(Code, Month_Start, Name, Nat_Code,
-                                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, Total_Att = Att_Typ1,
-                                   Total_Adm = E_Adm_Typ1)#,
-                          # Adm = df %>%
-                          #   select(Code, Month_Start, Name, Nat_Code,
-                          #          Within_4h = E_Adm_Not4hBr_D, Greater_4h = E_Adm_4hBr_D, Total = E_Adm_All_ED,
-                          #          E_Adm_Typ1, E_Adm_All_ED)
+                                   Within_4h = Att_Typ1_NotBr, Greater_4h = Att_Typ1_Br, 
+                                   Total_Att = Att_Typ1, Total_Adm = E_Adm_Typ1)
     )
   }
   
+  #add additional columns 
   perf_series %>% mutate(Performance = Within_4h / Total_Att) %>%
     mutate(Month_Start = as.Date(Month_Start, tz = 'Europe/London')) %>%
     #two new cols: 
@@ -70,6 +72,7 @@ regional_analysis <- function(df, level, onlyProvsReporting){
     Code <- "Prov_Code"
   }
   
+  #required for non-standard evaluation (!! functionality)
   Name <- as.name(Name)
   Code <- as.name(Code)
   
@@ -129,7 +132,7 @@ weekly_to_monthly <- function(df){
   
   df <- mutate(df, Month_Start = as.Date(Month_Start))
   df <- df %>% arrange(Month_Start)
-  datStart <- as.character(df$Month_Start[1] - weeks(1))  ###because dates are given as week_end
+  datStart <- as.character(df$Month_Start[1] - weeks(1))  #because dates are given as week_end
   
   Within_4h_df <- weekToMonth(df$Within_4h, datStart = datStart, wkMethod = "startDat", format = "%Y-%m-%d")
   Within_4h <- Within_4h_df$value
@@ -155,12 +158,13 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
-                             level = level, weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting) { 
+                             level = "Provider", weeklyOrMonthly = "Monthly",
+                             onlyProvsReporting = TRUE) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly, 
+  df <- make_perf_series(df = df, code = code, measure = measure, level = level, 
+                         weeklyOrMonthly = weeklyOrMonthly, 
                          onlyProvsReporting = onlyProvsReporting)
   
   df <- filter(df, !(is.na(Within_4h))) 
