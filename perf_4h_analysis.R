@@ -214,10 +214,10 @@ plot_performance <- function(df = AE_Data, df_recal,
     #pct_recal[41:59,"limitType3"] <- "first24" 
     pct_recal[breakPoint:57,"limitType3"] <- "new period" 
     
-    pct_recal[57:59,"ucl"] <- pct_recal[56, "ucl"]
-    pct_recal[57:59,"lcl"] <- pct_recal[56, "lcl"]
-    pct_recal[57:59,"cl"] <- pct_recal[56, "cl"]
-    pct_recal[56:59,"limitType4"] <- "post-period locked" 
+    pct_recal[57:60,"ucl"] <- pct_recal[56, "ucl"]
+    pct_recal[57:60,"lcl"] <- pct_recal[56, "lcl"]
+    pct_recal[57:60,"cl"] <- pct_recal[56, "cl"]
+    pct_recal[56:60,"limitType4"] <- "post-period locked" 
     
     pct_recal <- df_recal
     #pct$data <- pct_recal
@@ -288,7 +288,7 @@ plot_performance <- function(df = AE_Data, df_recal,
     
   } else {df}
   
-  #return(pct)
+  #return(pct_recal)
 }
 
 
@@ -375,10 +375,10 @@ plot_volume <- function(df, df_recal,
       
       
       #locked limits for locdown period
-      pct_recal[57:59,"ucl"] <- pct_recal[56, "ucl"]
-      pct_recal[57:59,"lcl"] <- pct_recal[56, "lcl"]
-      pct_recal[57:59,"cl"] <- pct_recal[56, "cl"]
-      pct_recal[56:59,"limitType4"] <- "post-period locked"
+      pct_recal[57:60,"ucl"] <- pct_recal[56, "ucl"]
+      pct_recal[57:60,"lcl"] <- pct_recal[56, "lcl"]
+      pct_recal[57:60,"cl"] <- pct_recal[56, "cl"]
+      pct_recal[56:60,"limitType4"] <- "post-period locked"
       
       pct_recal <- df_recal
       #pct$data <- pct_recal
@@ -405,9 +405,9 @@ plot_volume <- function(df, df_recal,
 
   # chart y limit
   ylimlow <- 0
-  ylimhigh <- ifelse(attOrAdm == "Attendances",
-                     ceiling(max(df_all$daily_ave_att)*1.1),
-                     ceiling(max(df_all$daily_ave_adm)*1.1))
+  # ylimhigh <- ifelse(attOrAdm == "Attendances",
+  #                    ceiling(max(df_all$daily_ave_att)*1.1),
+  #                    ceiling(max(df_all$daily_ave_adm)*1.1))
   
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
   
@@ -435,7 +435,8 @@ plot_volume <- function(df, df_recal,
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow, ymax = ylimhigh) + 
+      # format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow, ymax = ylimhigh) + 
+    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow) + 
       geom_blank(data=dummy, aes(x, y)) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
@@ -490,7 +491,7 @@ format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
               axis.line = element_line(colour = "grey60"),
               plot.caption = element_text(size = 10, hjust = 0.5))  +
     annotate("rect", xmin = as.Date("2020-03-01"), xmax = as.Date("2020-07-01"), 
-             # ymin = 0, ymax = Inf, 
+              #ymin = 0, ymax = Inf, 
              ymin = ymin, ymax = ymax,
              alpha = 0.2) 
 }
@@ -506,11 +507,11 @@ format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
 #                 breakPoint = 34, ymin = 0, ymax = 4720)
 
 
-#plot_performance(df_recal = p1All, code = "S", breakPoint = 30)
-#plot_volume(df = AE_Data, df_recal = r1All, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",breakPoint = 34)
+#plot_performance(df_recal = df_recal, code = "S", breakPoint = 30)
+#plot_volume(df = AE_Data, df_recal = df_recal_vol, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",breakPoint = 34)
  
-# library(rvg)
-# library(officer)
+library(rvg)
+library(officer)
 
 # read_pptx(path = "recalc_limits.pptx") %>%
 # #read_pptx() %>%
