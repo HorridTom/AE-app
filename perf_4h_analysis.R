@@ -153,7 +153,7 @@ weekly_to_monthly <- function(df){
 
 plot_performance <- function(df = AE_Data, df_recal,
                              code = "E", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2020-06-30",
+                             start.date = "2015-07-01", end.date = "2020-07-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
@@ -163,7 +163,8 @@ plot_performance <- function(df = AE_Data, df_recal,
                              breakPoint = 41,
                              ymin = 70, ymax = 100) { 
   
-  cht_title = "Percentage A&E attendances\nwith time in department < 4h"
+  cht_title <- "Percentage A&E attendances with time in department < 4h"
+  cht_caption <- "The average daily attendances are plotted as C’ Shewhart charts and the 4-hour performance measure plotted as P’ Shewhart charts. \nThe solid centre line represents the mean for that period and the lines above and below the mean represent the control limits within \nwhich the data will remain whilst the system is stable.  These charts identify when the system is out of statistical control when certain \nrules are broken / characteristics are seen.  *The two rules shown are: any month outside the control limits (Rule 1 - highlighted in orange) \nand eight or more consecutive months all above, or all below, the centre line (Rule 2 - highlighted in blue).\nLimits are calculated for a 24 month period and then extended until there is a rule break. Limits are then re-calculated for the next 24 months.\nThe period after March 2020 is shaded to highlight the effect of lockdown."
   
   df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly, 
                          onlyProvsReporting = onlyProvsReporting)
@@ -177,7 +178,7 @@ plot_performance <- function(df = AE_Data, df_recal,
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
-  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
+  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) +0.5
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
   
   # restrict to the period specified
@@ -193,14 +194,14 @@ plot_performance <- function(df = AE_Data, df_recal,
     pct_full <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
     pct_recal <- pct_full$data %>%
       left_join(pct_firstPeriod, by = "x") 
-    pct_recal[0:24,"limitType1"] <- "new period" 
+    pct_recal[0:24,"Limit"] <- "new period" 
     
     # ##lock limits for next points after the first 24 until there is a Rule 2 break (currently manual detetction of rule break)
 
     pct_recal[25:breakPoint,"ucl.y"] <- pct_recal[24, "ucl.y"]
     pct_recal[25:breakPoint,"lcl.y"] <- pct_recal[24, "lcl.y"]
     pct_recal[25:breakPoint,"cl.y"] <- pct_recal[24, "cl.y"]
-    pct_recal[24:breakPoint,"limitType2"] <- "post-period locked"
+    pct_recal[24:breakPoint,"limitType2"] <- "period extension"
     
     #recalculate limits for period after rule break not including post-lockdown points
     pct_ruleBreak <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df[breakPoint:56,], chart = 'pp', multiply = 100)
@@ -214,10 +215,10 @@ plot_performance <- function(df = AE_Data, df_recal,
     #pct_recal[41:59,"limitType3"] <- "first24" 
     pct_recal[breakPoint:57,"limitType3"] <- "new period" 
     
-    pct_recal[57:60,"ucl"] <- pct_recal[56, "ucl"]
-    pct_recal[57:60,"lcl"] <- pct_recal[56, "lcl"]
-    pct_recal[57:60,"cl"] <- pct_recal[56, "cl"]
-    pct_recal[56:60,"limitType4"] <- "post-period locked" 
+    pct_recal[57:61,"ucl"] <- pct_recal[56, "ucl"]
+    pct_recal[57:61,"lcl"] <- pct_recal[56, "lcl"]
+    pct_recal[57:61,"cl"] <- pct_recal[56, "cl"]
+    pct_recal[57:61,"limitType4"] <- "period extension" 
     
     pct_recal <- df_recal
     #pct$data <- pct_recal
@@ -275,9 +276,10 @@ plot_performance <- function(df = AE_Data, df_recal,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 93, vjust = -2, label = "95% Target", colour = '#00BB00') +
       #ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
-      ggtitle(cht_title, subtitle = paste0(reportingTitle)) + 
+      # ggtitle(cht_title, subtitle = paste0(reportingTitle)) + 
+      ggtitle(cht_title) + 
       labs(x= x_title, y="Percentage within 4 hours", 
-           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
+           caption = cht_caption, size = 10) +
       scale_y_continuous(expand = c(0,0)) +
       #ylim(ylimlow,100) +
       #geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2) +
@@ -294,7 +296,7 @@ plot_performance <- function(df = AE_Data, df_recal,
 
 plot_volume <- function(df, df_recal,
                         code = "E", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2020-06-30",
+                             start.date = "2015-07-01", end.date = "2020-07-30",
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
@@ -311,7 +313,7 @@ plot_volume <- function(df, df_recal,
   }else{
     cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily admissions from A&E per week", "Average daily admissions from A&E per month")
   }
-
+  cht_caption <- cht_caption <- "The average daily attendances are plotted as C’ Shewhart charts and the 4-hour performance measure plotted as P’ Shewhart charts. \nThe solid centre line represents the mean for that period and the lines above and below the mean represent the control limits within \nwhich the data will remain whilst the system is stable.  These charts identify when the system is out of statistical control when certain \nrules are broken / characteristics are seen.  *The two rules shown are: any month outside the control limits (Rule 1 - highlighted in orange) \nand eight or more consecutive months all above, or all below, the centre line (Rule 2 - highlighted in blue).\nLimits are calculated for a 24 month period and then extended until there is a rule break. Limits are then re-calculated for the next 24 months.\nThe period after March 2020 is shaded to highlight the effect of lockdown."
   
   df_original <- df
   df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
@@ -326,7 +328,7 @@ plot_volume <- function(df, df_recal,
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
-  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
+  q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) 
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
   
   # restrict to the period specified
@@ -350,13 +352,13 @@ plot_volume <- function(df, df_recal,
         select(x,ucl,lcl, cl)
       pct_recal <- pct_full$data %>%
         left_join(pct_firstPeriod, by = "x") 
-      pct_recal[0:24,"limitType1"] <- "new period" 
+      pct_recal[0:24,"Limit"] <- "new period" 
       
       # ##lock limits for next points after the first 24 until there is a Rule 2 break (currently manual detetction of rule break)
       pct_recal[25:breakPoint,"ucl.y"] <- pct_recal[24, "ucl.y"]
       pct_recal[25:breakPoint,"lcl.y"] <- pct_recal[24, "lcl.y"]
       pct_recal[25:breakPoint,"cl.y"] <- pct_recal[24, "cl.y"]
-      pct_recal[24:breakPoint,"limitType2"] <- "post-period locked"
+      pct_recal[24:breakPoint,"limitType2"] <- "period extension"
       
       #recalculate limits for period after rule break not including post-lockdown points
       if(attOrAdm == "Attendances"){
@@ -371,14 +373,14 @@ plot_volume <- function(df, df_recal,
         mutate(ucl = ifelse(is.na(ucl), ucl.y, ucl)) %>%
         mutate(lcl = ifelse(is.na(lcl), lcl.y, lcl)) %>%
         mutate(cl = ifelse(is.na(cl), cl.y, cl))
-      pct_recal[breakPoint:56,"limitType3"] <- "new period" 
+      pct_recal[breakPoint:57,"limitType3"] <- "new period" 
       
       
       #locked limits for locdown period
-      pct_recal[57:60,"ucl"] <- pct_recal[56, "ucl"]
-      pct_recal[57:60,"lcl"] <- pct_recal[56, "lcl"]
-      pct_recal[57:60,"cl"] <- pct_recal[56, "cl"]
-      pct_recal[56:60,"limitType4"] <- "post-period locked"
+      pct_recal[57:61,"ucl"] <- pct_recal[56, "ucl"]
+      pct_recal[57:61,"lcl"] <- pct_recal[56, "lcl"]
+      pct_recal[57:61,"cl"] <- pct_recal[56, "cl"]
+      pct_recal[57:61,"limitType4"] <- "period extension"
       
       pct_recal <- df_recal
       #pct$data <- pct_recal
@@ -435,14 +437,14 @@ plot_volume <- function(df, df_recal,
   }
   
   if(plot.chart == TRUE) {
-      # format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow, ymax = ylimhigh) + 
-    format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow) + 
+     format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow, ymax = ylimhigh) + 
+    #format_control_chart(pct, r1_col = r1_col, r2_col = r2_col, ymin = ylimlow) + 
       geom_blank(data=dummy, aes(x, y)) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
+      ggtitle(cht_title) + 
       labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
-           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
+           caption = cht_caption,
            size = 10) +
       scale_y_continuous(#limits = c(ylimlow, ylimhigh),
                          breaks = breaks_pretty(),
@@ -465,9 +467,9 @@ format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
   point_colours <- c("Rule 1" = r1_col, "Rule 2" = r2_col, "None" = "black")
   cht + 
     geom_line(colour = "black", size = 0.5) + 
-    geom_line(aes(x,cl, linetype = limitType1), size = 0.75) +
-    geom_line(aes(x,ucl, linetype = limitType1), size = 0.5) +
-    geom_line(aes(x,lcl, linetype = limitType1), size = 0.5) +
+    geom_line(aes(x,cl, linetype = Limit), size = 0.75) +
+    geom_line(aes(x,ucl, linetype = Limit), size = 0.5) +
+    geom_line(aes(x,lcl, linetype = Limit), size = 0.5) +
     geom_line(aes(x,cl, linetype = limitType2), size = 0.75) +
     geom_line(aes(x,ucl, linetype = limitType2), size = 0.75) +
     geom_line(aes(x,lcl, linetype = limitType2), size = 0.75) +
@@ -502,13 +504,13 @@ format_control_chart <- function(cht, r1_col, r2_col, ymin, ymax) {
 # q1 <- plot_performance(AE_Data, code = "S", level = "National", onlyProvsReporting = T,
 #                       breakPoint = 30, ymin = 60, ymax = 100)
 # r1 <-plot_volume(df = AE_Data, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",
-#                 breakPoint = 34, ymin = 0, ymax = 80000)
+#                 breakPoint = 34)#, ymin = 0, ymax = 80000)
 # s1 <-plot_volume(df = AE_Data, code = "S", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",
-#                 breakPoint = 34, ymin = 0, ymax = 4720)
+#                 breakPoint = 34)#, ymin = 0, ymax = 4720)
 
 
-#plot_performance(df_recal = df_recal, code = "S", breakPoint = 30)
-#plot_volume(df = AE_Data, df_recal = df_recal_vol, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",breakPoint = 34)
+#plot_performance(df_recal = p1All4, code = "S", breakPoint = 30)
+#plot_volume(df = AE_Data, df_recal = r1All2, code = "E", level = "National", onlyProvsReporting = T, attOrAdm = "Attendances",breakPoint = 34)
  
 library(rvg)
 library(officer)
