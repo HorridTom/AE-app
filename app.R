@@ -200,6 +200,15 @@ ui <- dashboardPage(
 # Define server logic
 server <- function(input, output) {
   
+  #currently no admissions data for Scotland so hides admissions graph
+  observeEvent(input$country, {
+    if(input$country == "England"){
+      shinyjs::show(id = "admissionsPlot")
+    }else{
+      shinyjs::hide(id = "admissionsPlot")
+    }
+  })
+  
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
   provLookup <- provLookup %>% arrange(Prov_Name) 
   
