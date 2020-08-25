@@ -17,10 +17,10 @@ getSqlConnection <- function(){
   conn <-
     dbConnect(
       RMySQL::MySQL(),
-      username = 'ae-app-user',
-      password = 'ARCNWL',
-      host = '35.187.46.164',
-      dbname = 'AEAppDatabase'
+      username = config::get("username"),
+      password = config::get("password"),
+      host = config::get("host"),
+      dbname = config::get("dbname")
     ) 
   return(conn)
 }
