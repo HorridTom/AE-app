@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-.yml
+*.yml
 rsconnect/
 data-raw/
 data-out/
