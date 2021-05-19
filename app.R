@@ -17,10 +17,11 @@ getSqlConnection <- function(){
   conn <-
     dbConnect(
       RMySQL::MySQL(),
-      username = config::get("username"),
+      user = config::get("user"),
       password = config::get("password"),
       host = config::get("host"),
-      dbname = config::get("dbname")
+      dbname = config::get("dbname"),
+      port = config::get("port")
     ) 
   return(conn)
 }
