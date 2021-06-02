@@ -7,6 +7,10 @@ library(zoo)
 library(lubridate)
 library(wktmo)
 
+source("algorithm_functions.R")
+source("automation_function_interface.R")
+source("plot_code.R")
+
 make_perf_series <- function(df, code = "RQM", measure = "All", level, 
                              weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
   
@@ -179,23 +183,11 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
-  if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y, label = x))
-  } else {
-    br.dt <- as.Date(brk.date)
-    # locate break row
-    v <- df$Month_Start
-    br.row <- which(v == max(v[v < br.dt]))
-    
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100,
-                          freeze = br.row)
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
-  }
+############
+  #rename columns to work with algorithm 
+  df <- df %>% rename(x = Month_Start, b = Within_4h, n = Total_Att)
+  pct <- plot_auto_SPC(df, cht_type = "P'")
+############
   
   # chart y limit
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
@@ -226,7 +218,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      pct + 
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
@@ -278,32 +270,21 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
-  if (is.null(brk.date)) {
+######################
     #Total is replaced with the new col "daily_ave"
     if(attOrAdm == "Attendances"){
-      pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+      #rename columns to work with algorithm 
+      df <- df %>% rename(x = Month_Start, y = daily_ave_att)
+      pct <- plot_auto_SPC(df, cht_type = "C'")
     }else{
-      pct <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
+      #rename columns to work with algorithm 
+      df <- df %>% rename(x = Month_Start, y = daily_ave_adm)
+      pct <- plot_auto_SPC(df, cht_type = "C'")
     }
     
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
-  } else {
-    br.dt <- as.Date(brk.date)
-    # locate break row
-    v <- df$Month_Start
-    br.row <- which(v == max(v[v < br.dt]))
-    
-    #Total is replaced with the new col "daily_ave"
-    pct <- ifelse(attOrAdm == "Attendances",
-                  qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row),
-                  qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row))
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
 
-  }
+######################
   
   # chart y limit
   ylimlow <- 0
@@ -337,7 +318,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      pct + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
