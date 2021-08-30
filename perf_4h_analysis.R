@@ -7,11 +7,9 @@ library(zoo)
 library(lubridate)
 library(wktmo)
 
-source("algorithm_functions.R")
-source("automation_function_interface.R")
-source("plot_code.R")
 
-make_perf_series <- function(df, code = "RQM", measure = "All", level, 
+
+make_perf_series <- function(df, code = "RQM", measure = "All", level = "Provider", 
                              weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
   
   df <- regional_analysis(df, level, onlyProvsReporting)
@@ -105,9 +103,9 @@ regional_analysis <- function(df, level, onlyProvsReporting){
 clean_region_col <- function(df){
   
   df <- df %>%
-    mutate(Region = ifelse(str_detect(Region, coll("london",ignore_case = T)), "London", 
-                              ifelse(str_detect(Region, coll("midlands",ignore_case = T)),"Midlands", 
-                                     ifelse(str_detect(Region, coll("north",ignore_case = T)),"North of England", 
+    mutate(Region = ifelse(str_detect(Region, coll("london",ignore_case = T))[1], "London", 
+                              ifelse(str_detect(Region, coll("midlands",ignore_case = T))[1],"Midlands", 
+                                     ifelse(str_detect(Region, coll("north",ignore_case = T))[1],"North of England", 
                                             "South of England"))),
            Reg_Code = ifelse(Region == "London", "Lo", 
                              ifelse(Region == "Midlands", "Mi", 
@@ -154,18 +152,18 @@ weekly_to_monthly <- function(df){
 }
 
 plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2018-05-30",
+                             start.date, end.date,
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
-                             level = level, weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting) { 
+                             level = "Provider", weeklyOrMonthly = "Monthly",
+                             onlyProvsReporting = F) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly, 
-                         onlyProvsReporting = onlyProvsReporting)
+  # df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly, 
+  #                        onlyProvsReporting = onlyProvsReporting)
   
   df <- filter(df, !(is.na(Within_4h))) 
   
@@ -173,8 +171,8 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = !!date.col) %>% pull(Name)}
   
   # convert arguments to dates
-  st.dt <- as.Date(start.date, tz = "Europe/London")
-  ed.dt <- as.Date(end.date, tz = "Europe/London")
+  st.dt <- as.Date(min(df$Month_Start), tz = "Europe/London")
+  ed.dt <- as.Date(max(df$Month_Start), tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
   q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
@@ -206,7 +204,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else if(level == "Regional"){
     levelTitle <- ifelse(df$Nat_Code[1] == "E", "Region:","Board:")
   }else{
-    levelTitle <- ""
+    levelTitle <- "Provider:"
   }
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
@@ -223,24 +221,24 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
+      ggtitle(cht_title, subtitle = paste(levelTitle, pr_name, typeTitle, reportingTitle)) +  
       labs(x= x_title, y="Percentage within 4 hours", 
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
+      geom_text(aes(label= ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
     
   } else {df}
 }
 
 
 plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2018-05-30",
+                             start.date, end.date,
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3", level = "Provider", 
                              weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting,
+                             onlyProvsReporting = F,
                              attOrAdm = "Attendances") { 
   
   if(attOrAdm == "Attendances"){
@@ -251,17 +249,18 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
 
   
   df_original <- df
-  df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
-                         weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = onlyProvsReporting)
-  df_all <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
-                         weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
+  # df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
+  #                        weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = onlyProvsReporting)
+  # df_all <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
+  #                        weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
+  df_all <- df
   
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
   
   # convert arguments to dates and round to nearest quarter
-  st.dt <- as.Date(start.date, tz = "Europe/London")
-  ed.dt <- as.Date(end.date, tz = "Europe/London")
+  st.dt <- as.Date(min(df$Month_Start), tz = "Europe/London")
+  ed.dt <- as.Date(max(df$Month_Start), tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
   q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
@@ -306,7 +305,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else if(level == "Regional"){
     levelTitle <- ifelse(df$Nat_Code[1] == "E", "Region:","Board:")
   }else{
-    levelTitle <- ""
+    levelTitle <- "Provider:"
   }
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
@@ -321,7 +320,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       pct + 
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
+      ggtitle(cht_title, subtitle = paste(levelTitle, pr_name, typeTitle, reportingTitle)) + 
       labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
