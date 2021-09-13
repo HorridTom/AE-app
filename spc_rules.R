@@ -13,8 +13,9 @@ add_rule_breaks <- function(x) {
 }
 
 rule_two <- function(df) {
-  
-  runs <- rle(ifelse(df$y > df$cl,1,-1))
+
+  runs <- rle(ifelse(df$y == df$cl,0,
+                     ifelse(df$y > df$cl, 1,-1)))
   rulebreakingruns <- runs$lengths >= 8
   runs$values <- rulebreakingruns
   partofrun <- inverse.rle(runs)
@@ -26,6 +27,6 @@ rule_two <- function(df) {
 add_highlight <- function(df) {
   df$highlight <- ifelse(df$rule2, "Rule 2", "None")
   df$highlight <- ifelse(df$rule1, "Rule 1", df$highlight)
-  df[is.na(df$highlight),'highlight'] <- "none"
+  df[is.na(df$highlight),'highlight'] <- "None"
   df
 }
