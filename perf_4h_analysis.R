@@ -179,36 +179,13 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
-  if (is.null(brk.date)) {
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100)
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y, label = x))
-  } else {
-    br.dt <- as.Date(brk.date)
-    # locate break row
-    v <- df$Month_Start
-    br.row <- which(v == max(v[v < br.dt]))
-    
-    pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100,
-                          freeze = br.row)
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
-  }
-  
-  # chart y limit
-  ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
-  # data for target line
-  cutoff <- data.frame(yintercept=95, cutoff=factor(95))
-  
   #currently only England differentiates by type
   if(df$Nat_Code[1] == "E"){
     typeTitle <- ifelse(measure == "Typ1", "\nType 1 departments only", "\nAll department types")
   }else{
     typeTitle <- ""
   }
-  
+
   if(level == "National"){
     levelTitle <- "Country:"
   }else if(level == "Regional"){
@@ -216,7 +193,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else{
     levelTitle <- ""
   }
-  
+
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
     reportingTitle <- "\nIncludes only providers that are still reporting"
   }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
@@ -226,17 +203,18 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
-      geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
-      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
-                   limits = c(q.st.dt, q.ed.dt)) +
-      annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
-      labs(x= x_title, y="Percentage within 4 hours", 
-           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
-      ylim(ylimlow,100) +
-      geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
     
+    autospc::plot_auto_SPC(df, 
+                           x = Month_Start, 
+                           y = Within_4h, 
+                           n = Total_Att, 
+                           chartType = "P'",
+                           title = cht_title,
+                           subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
+                           override_x_title = x_title,
+                           override_y_title = "Percentage within 4 hours")
+    #still need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line"
+
   } else {df}
 }
 
@@ -278,41 +256,6 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
 
-  if (is.null(brk.date)) {
-    #Total is replaced with the new col "daily_ave"
-    if(attOrAdm == "Attendances"){
-      pct <- qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
-    }else{
-      pct <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
-    }
-    
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
-  } else {
-    br.dt <- as.Date(brk.date)
-    # locate break row
-    v <- df$Month_Start
-    br.row <- which(v == max(v[v < br.dt]))
-    
-    #Total is replaced with the new col "daily_ave"
-    pct <- ifelse(attOrAdm == "Attendances",
-                  qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row),
-                  qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row))
-    pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
-    cht_data <- add_rule_breaks(pct$data)
-    pct <- ggplot(cht_data, aes(x,y))
-
-  }
-  
-  # chart y limit
-  ylimlow <- 0
-  ylimhigh <- ifelse(attOrAdm == "Attendances",
-                     ceiling(max(df_all$daily_ave_att)*1.1),
-                     ceiling(max(df_all$daily_ave_adm)*1.1))
-  
-  cutoff <- data.frame(yintercept=95, cutoff=factor(95))
-  
   # for subtitle 
   if(df$Nat_Code[1] == "E"){
     typeTitle <- ifelse(measure == "Typ1", "\nType 1 departments only", "\nAll department types")
@@ -337,36 +280,33 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }
   
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
-      scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
-                   limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
-      labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
-           caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
-           size = 10) +
-      scale_y_continuous(limits = c(ylimlow, ylimhigh),
-                         breaks = breaks_pretty(),
-                         labels = number_format(accuracy = 1, big.mark = ",")
-                         ) 
+    
+    if(attOrAdm == "Attendances"){qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+      autospc::plot_auto_SPC(df, 
+                             x = Month_Start,
+                             y = daily_ave_att,
+                             chartType = "C'",
+                             title = cht_title,
+                             subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
+                             override_x_title = x_title,
+                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"))
+      #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
+      #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
+    }else{
+      qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+      autospc::plot_auto_SPC(df, 
+                             x = Month_Start,
+                             y = daily_ave_adm,
+                             chartType = "C'",
+                             title = cht_title,
+                             subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
+                             override_x_title = x_title,
+                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"))
+      #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
+      #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
+      }
+    
+
     
   } else {df}
-}
-
-format_control_chart <- function(cht, r1_col, r2_col) {
-  point_colours <- c("Rule 1" = r1_col, "Rule 2" = r2_col, "None" = "black")
-  cht + 
-    geom_line(colour = "black", size = .5) + 
-    geom_line(aes(x,cl), size = 0.75) +
-    geom_line(aes(x,ucl), size = 0.75, linetype = 2) +
-    geom_line(aes(x,lcl), size = 0.75, linetype = 2) +
-    geom_point(aes(colour = highlight), size = 2) +
-    scale_color_manual("Rule triggered*", values = point_colours) + 
-    theme(panel.grid.major.y = element_blank(), panel.grid.major.x = element_line(colour = "grey80"),
-              panel.grid.minor = element_blank(), panel.background = element_blank(),
-              axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1.0, size = 14),
-              axis.text.y = element_text(size = 14), axis.title = element_text(size = 14),
-              plot.title = element_text(size = 20, hjust = 0),
-              plot.subtitle = element_text(size = 16, face = "italic"),
-              axis.line = element_line(colour = "grey60"),
-              plot.caption = element_text(size = 10, hjust = 0.5))
 }
