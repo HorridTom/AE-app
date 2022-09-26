@@ -9,6 +9,9 @@ Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
 source("perf_4h_analysis.R")
 
+#suppress summarise informating printing
+options(dplyr.summarise.inform = FALSE)
+
 r1_col = "orange"
 r2_col = "steelblue3"
 
