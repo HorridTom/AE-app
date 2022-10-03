@@ -4,10 +4,17 @@ library(tidyverse)
 library(stringr)
 library(RMySQL)
 library(DBI)
+library(nhsAEscraper) 
+library(RMySQL)
+library(odbc)
+library(openssl)
+library(xlsx)
+library(shinycssloaders)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
 source("perf_4h_analysis.R")
+source("update_functions.R")
 
 r1_col = "orange"
 r2_col = "steelblue3"
@@ -102,9 +109,9 @@ ui <- dashboardPage(
                 h4(uiOutput("subtitle")),
                 fluidRow( 
                          column(width = 12,
-                                box(plotOutput("edPerfPlot"), width = NULL),
-                                box(plotOutput("edVolPlot"), width = NULL),
-                                box(id = "admissionsPlot", plotOutput("edAdmVolPlot"), width = NULL)
+                                box(plotOutput("edPerfPlot") %>% withSpinner(color="#3F9CB7"), width = NULL),
+                                box(plotOutput("edVolPlot") %>% withSpinner(color="#3F9CB7"), width = NULL),
+                                box(id = "admissionsPlot", plotOutput("edAdmVolPlot") %>% withSpinner(color="#3F9CB7"), width = NULL)
                                 )
                          ),
                downloadButton('downloadPerfPlot', label = 'Download Performance Chart'), 
@@ -175,7 +182,17 @@ ui <- dashboardPage(
                 br(),
                 p("This analysis uses p-prime and u-prime charts, more information
                   is available here:"),
-                a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830")
+                a("Prime charts publication", href="http://dx.doi.org/10.1136/qshc.2006.017830"),
+                h2("Check for data updates"),
+                p("Scottish data is updated weekly and English data is updated monthly on the third Thursday of the month."),
+                actionButton("checkUpdates", label = "Check for updates"),
+                p("New data was last added to the database on:"),
+                conditionalPanel(condition = "input.checkUpdates != 0",
+                                 uiOutput("lastUpdate") %>% withSpinner(color="#3F9CB7")),
+                conditionalPanel(condition = "input.checkUpdates != 0",
+                                 uiOutput("rows")),
+                conditionalPanel(condition = "input.checkUpdates != 0",
+                                 uiOutput("rowsScot"))
         ),
        tabItem(tabName = "dev",
                h1("Development"),
@@ -414,6 +431,42 @@ server <- function(input, output) {
       print(edVolPlotInput(volumeType = "Admissions"))
       dev.off()
     })
+  
+  #update data
+  observeEvent(input$checkUpdates, {
+    
+    #open connection to database
+    conn <- get_SQL_connection()
+    
+    #finds the last time rows were added to tables in the database
+    lastUpdate <- last_update(conn)
+    output$lastUpdate <- renderText({
+      paste(lastUpdate, "\n")
+    })
+    
+    #download the data from the internet
+    AE_Data <- nhsAEscraper::getAE_data(update_data = T, directory = 'data-raw', country = "England")
+    AE_Data_Scot <- nhsAEscraper::getAE_data(update_data = T, directory = 'data-raw-Scot', country = "Scotland")
+    assign("AE_Data", AE_Data, envir = .GlobalEnv)
+    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+    
+    #updates database with error handling and returns number of new rows added
+    rowsAddedEng <- update_database_error_handle(data = AE_Data, country = "England", conn = conn)
+    rowsAddedScot <- update_database_error_handle(data = AE_Data_Scot, country = "Scotland", conn = conn)
+    
+    #close database connection
+    dbDisconnect(conn)
+    
+    #information for UI
+    updateDate <- Sys.time()
+    output$rows <- renderText({
+      paste("The number of new rows added to AE_Data_full were",rowsAddedEng)
+    })
+    output$rowsScot <- renderText({
+      paste("The number of new rows added to AE_Data_Scot_full were",rowsAddedScot)
+    })
+    
+  })
 
 }
 
