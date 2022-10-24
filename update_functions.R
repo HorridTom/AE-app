@@ -6,6 +6,8 @@ library(tidyverse)
 library(openssl)
 library(mailR)
 
+source("perf_4h_analysis.R")
+
 #Function for getting new connection to Cloud SQL
 get_SQL_connection <- function(){
   conn <-
@@ -176,4 +178,145 @@ update_database_error_handle <- function(data, country, conn){
   #number of rows added to each database _full table 
   return(rowsAdded)
   
+}
+
+
+#function to get table of perf series
+make_perf_series_data_frame <- function(data = AE_Data,
+                                        data_scot = AE_Data_Scot,
+                                        measureArg = "All",#"Typ1"
+                                        onlyProvsReportingArg = FALSE#TRUE
+                                        ){
+
+  #get lists of providers, regions and counties
+  provs <- unique(data$Prov_Code)
+  regs <- unique(data$Reg_Code)
+  nats <- unique(data$Nat_Code)
+
+  provs_scot <- unique(data_scot$Prov_Code)
+  regs_scot <- unique(data_scot$Reg_Code)
+  nats_scot <- unique(data_scot$Nat_Code)
+
+  #initialise empty dataframes
+  perf_series_df_provs_monthly_All_F <- data.frame()
+  perf_series_df_regs_monthly_All_F <- data.frame()
+  perf_series_df_nats_monthly_All_F <- data.frame()
+
+  perf_series_df_scot_provs_weekly_All_F <- data.frame()
+  perf_series_df_scot_regs_weekly_All_F <- data.frame()
+  perf_series_df_scot_nats_weekly_All_F <- data.frame()
+
+  #loops through all providers, monthly aggregation
+  for(i in provs){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "Provider",
+                           weeklyOrMonthly = "Monthly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_provs_monthly_All_F <- bind_rows(perf_series_df_provs_monthly_All_F, df)
+
+    print(paste(i, "monthly"))
+  }
+
+  perf_series_df_provs_monthly_All_F <- perf_series_df_provs_monthly_All_F %>%
+    mutate(level = "Provider",
+           weeklyOrMonthly = "Monthly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+           )
+
+  #loops through all regions, monthly aggregation
+  for(i in regs){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "Regional",
+                           weeklyOrMonthly = "Monthly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_regs_monthly_All_F <- bind_rows(perf_series_df_regs_monthly_All_F, df)
+    
+    print(paste(i, "monthly"))
+  }
+
+  perf_series_df_regs_monthly_All_F <- perf_series_df_regs_monthly_All_F %>%
+    mutate(level = "Regional",
+           weeklyOrMonthly = "Monthly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+    )
+
+  #loops through countries, monthly aggregation
+  for(i in nats){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "National",
+                           weeklyOrMonthly = "Monthly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_nats_monthly_All_F <- bind_rows(perf_series_df_nats_monthly_All_F, df)
+    
+    print(paste(i, "monthly"))
+  }
+
+  perf_series_df_nats_monthly_All_F <- perf_series_df_nats_monthly_All_F %>%
+    mutate(level = "National",
+           weeklyOrMonthly = "Monthly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+    )
+
+  #loops through Scottish providers, weekly aggregation
+  for(i in provs_scot){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "Provider",
+                           weeklyOrMonthly = "weekly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_scot_provs_weekly_All_F <- bind_rows(perf_series_df_scot_provs_weekly_All_F, df)
+    
+    print(paste(i, "weekly"))
+  }
+
+  perf_series_df_scot_provs_weekly_All_F <- perf_series_df_scot_provs_weekly_All_F %>%
+    mutate(level = "Provider",
+           weeklyOrMonthly = "Weekly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+    )
+
+  #loops through Scottish boards (regions), weekly aggregation
+  for(i in regs_scot){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "Regional",
+                           weeklyOrMonthly = "weekly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_scot_regs_weekly_All_F <- bind_rows(perf_series_df_scot_regs_weekly_All_F, df)
+    
+    print(paste(i, "weekly"))
+  }
+
+  perf_series_df_scot_regs_weekly_All_F <- perf_series_df_scot_regs_weekly_All_F %>%
+    mutate(level = "Regional",
+           weeklyOrMonthly = "Weekly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+    )
+
+  #loops through Scotland, weekly aggregation
+  for(i in nats_scot){
+    df <- make_perf_series(data, code = i, measure = measureArg, level = "National",
+                           weeklyOrMonthly = "weekly", onlyProvsReporting = onlyProvsReportingArg)
+
+    perf_series_df_scot_nats_weekly_All_F <- bind_rows(perf_series_df_scot_nats_weekly_All_F, df)
+    
+    print(paste(i, "weekly"))
+  }
+
+  perf_series_df_scot_nats_weekly_All_F <- perf_series_df_scot_nats_weekly_All_F %>%
+    mutate(level = "National",
+           weeklyOrMonthly = "Weekly",
+           measure = measureArg,
+           onlyProvsReporting = onlyProvsReportingArg
+    )
+
+  #all outputs bound together to load into database
+  perf_series_df <- bind_rows(perf_series_df_provs_monthly_All_F,
+                              perf_series_df_regs_monthly_All_F,
+                              perf_series_df_nats_monthly_All_F,
+                              perf_series_df_scot_provs_weekly_All_F,
+                              perf_series_df_scot_regs_weekly_All_F,
+                              perf_series_df_scot_nats_weekly_All_F)
+  
+  #edit column types to be compatible with database
+  perf_series_df <- perf_series_df %>%
+    mutate(onlyProvsReporting = as.character(onlyProvsReporting))
 }

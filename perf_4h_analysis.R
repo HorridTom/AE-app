@@ -25,7 +25,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
     perf_series <- df %>%
       select(Code, Month_Start, Name, Nat_Code,
              Within_4h = Att_All_NotBr, Greater_4h = Att_All_Br, Total_Att = Att_All,Total_Adm = E_Adm_All_ED)
-    if(weeklyOrMonthly != "weekly"){
+    if(weeklyOrMonthly != "Weekly"){
       perf_series <- weekly_to_monthly(perf_series)
     }
   }else{
@@ -50,7 +50,7 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
     #two new cols: 
     #if National code - i.e. Scotland $ weekly, return number of days - i.e. 7
     #else return number of days in a months
-    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(df$Month_Start))) %>%
+    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "Weekly",7, days_in_month(df$Month_Start))) %>%
     mutate(daily_ave_att = Total_Att/days_in_period) %>%
     mutate(daily_ave_adm = Total_Adm/days_in_period)
   
@@ -150,7 +150,7 @@ weekly_to_monthly <- function(df){
 }
 
 plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2018-05-30",
+                             start.date = "2015-07-01", end.date = lubridate::today(),
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
@@ -160,21 +160,30 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
-  df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly, 
-                         onlyProvsReporting = onlyProvsReporting)
-  
-  df <- filter(df, !(is.na(Within_4h))) 
-  
+  # df <- make_perf_series(df = df, code = code, measure = measure, level = level, weeklyOrMonthly = weeklyOrMonthly,
+  #                        onlyProvsReporting = onlyProvsReporting)
+
+  #It gets confused if the filter value is the same as the column name
+  levelFilter <- level
+  weeklyOrMonthlyFilter <- weeklyOrMonthly
+  measureFilter <- measure
+  onlyProvsReportingFilter <- onlyProvsReporting
+
+  df <- df %>%
+    filter(Code == code & level == level & weeklyOrMonthly == weeklyOrMonthlyFilter & measure == measureFilter & onlyProvsReporting == onlyProvsReportingFilter)
+
+  df <- filter(df, !(is.na(Within_4h)))
+
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = !!date.col) %>% pull(Name)}
-  
+
   # convert arguments to dates
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
   q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
-  
+
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
@@ -189,26 +198,26 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
     # locate break row
     v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
-    
+
     pct <- qicharts2::qic(Month_Start, Within_4h, n = Total_Att, data = df, chart = 'pp', multiply = 100,
                           freeze = br.row)
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
   }
-  
+
   # chart y limit
   ylimlow <- min(min(pct$data$y, na.rm = TRUE),min(pct$data$lcl, na.rm = TRUE), max_lower_y_scale)
   # data for target line
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
-  
+
   #currently only England differentiates by type
   if(df$Nat_Code[1] == "E"){
     typeTitle <- ifelse(measure == "Typ1", "\nType 1 departments only", "\nAll department types")
   }else{
     typeTitle <- ""
   }
-  
+
   if(level == "National"){
     levelTitle <- "Country:"
   }else if(level == "Regional"){
@@ -216,7 +225,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else{
     levelTitle <- ""
   }
-  
+
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
     reportingTitle <- "\nIncludes only providers that are still reporting"
   }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
@@ -224,25 +233,25 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else{
     reportingTitle <- ""
   }
-  
+
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) +
       geom_hline(aes(yintercept=yintercept, linetype=cutoff), data=cutoff, colour = '#00BB00', linetype = 1) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
       annotate("text", ed.dt - 90, 95, vjust = -2, label = "95% Target", colour = '#00BB00') +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +  
-      labs(x= x_title, y="Percentage within 4 hours", 
+      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +
+      labs(x= x_title, y="Percentage within 4 hours",
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line", size = 10) +
       ylim(ylimlow,100) +
       geom_text(aes(label=ifelse(x==max(x), format(x, '%b-%y'),'')),hjust=-0.05, vjust= 2)
-    
+
   } else {df}
 }
 
 
 plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
-                             start.date = "2015-07-01", end.date = "2018-05-30",
+                             start.date = "2015-07-01", end.date = lubridate::today(),
                              brk.date = NULL, max_lower_y_scale = 60,
                              measure = "All", plot.chart = TRUE,
                              pr_name = NULL, x_title = "Month",
@@ -252,28 +261,41 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              attOrAdm = "Attendances") { 
   
   if(attOrAdm == "Attendances"){
-    cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
+    cht_title <- ifelse(weeklyOrMonthly == "Weekly", "Average daily A&E attendances per week", "Average daily A&E attendances per month")
   }else{
-    cht_title <- ifelse(weeklyOrMonthly == "weekly", "Average daily admissions from A&E per week", "Average daily admissions from A&E per month")
+    cht_title <- ifelse(weeklyOrMonthly == "Weekly", "Average daily admissions from A&E per week", "Average daily admissions from A&E per month")
   }
 
   
   df_original <- df
-  df <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
-                         weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = onlyProvsReporting)
-  df_all <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
-                         weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
+  # df <- make_perf_series(df = df_original, code = code, measure = measure, level = level,
+  #                        weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = onlyProvsReporting)
+  # df_all <- make_perf_series(df = df_original, code = code, measure = measure, level = level, 
+  #                        weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
   
+  #It gets confused if the filter value is the same as the column name
+  levelFilter <- level
+  weeklyOrMonthlyFilter <- weeklyOrMonthly
+  measureFilter <- measure
+  onlyProvsReportingFilter <- onlyProvsReporting
+
+  df <- df_original %>%
+    filter(Code == code & level == level & weeklyOrMonthly == weeklyOrMonthlyFilter & measure == measureFilter & onlyProvsReporting == onlyProvsReportingFilter)
+
+  df_all <- df_original %>%
+    filter(Code == code & level == level & weeklyOrMonthly == weeklyOrMonthlyFilter & measure == measureFilter & onlyProvsReporting == FALSE)
+
+
   # if no pr_name passed, lookup full name of provider
   if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
-  
+
   # convert arguments to dates and round to nearest quarter
   st.dt <- as.Date(start.date, tz = "Europe/London")
   ed.dt <- as.Date(end.date, tz = "Europe/London")
   q.st.dt <- as.Date(zoo::as.yearqtr(st.dt, format="%Y-%m-%d"))
   q.ed.dt <- as.Date(zoo::as.yearqtr(ed.dt, format="%Y-%m-%d"), frac = 1) + 1
   cht_axis_breaks <- seq(q.st.dt, q.ed.dt, "quarters")
-  
+
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
@@ -285,7 +307,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     }else{
       pct <- qicharts2::qic(Month_Start, daily_ave_adm, n = rep(1, nrow(df)), data = df, chart = 'up')
     }
-    
+
     pct$data$x <- as.Date(pct$data$x, tz = 'Europe/London')
     cht_data <- add_rule_breaks(pct$data)
     pct <- ggplot(cht_data, aes(x,y))
@@ -294,7 +316,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     # locate break row
     v <- df$Month_Start
     br.row <- which(v == max(v[v < br.dt]))
-    
+
     #Total is replaced with the new col "daily_ave"
     pct <- ifelse(attOrAdm == "Attendances",
                   qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up', freeze = br.row),
@@ -304,22 +326,22 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     pct <- ggplot(cht_data, aes(x,y))
 
   }
-  
+
   # chart y limit
   ylimlow <- 0
   ylimhigh <- ifelse(attOrAdm == "Attendances",
                      ceiling(max(df_all$daily_ave_att)*1.1),
                      ceiling(max(df_all$daily_ave_adm)*1.1))
-  
+
   cutoff <- data.frame(yintercept=95, cutoff=factor(95))
-  
-  # for subtitle 
+
+  # for subtitle
   if(df$Nat_Code[1] == "E"){
     typeTitle <- ifelse(measure == "Typ1", "\nType 1 departments only", "\nAll department types")
   }else{
     typeTitle <- ""
   }
-  
+
   if(level == "National"){
     levelTitle <- "Country:"
   }else if(level == "Regional"){
@@ -327,7 +349,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else{
     levelTitle <- ""
   }
-  
+
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
     reportingTitle <- "\nIncludes only providers that are still reporting"
   }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
@@ -335,20 +357,20 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   }else{
     reportingTitle <- ""
   }
-  
+
   if(plot.chart == TRUE) {
-      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) + 
+      format_control_chart(pct, r1_col = r1_col, r2_col = r2_col) +
       scale_x_date(labels = date_format("%Y-%m"), breaks = cht_axis_breaks,
                    limits = c(q.st.dt, q.ed.dt)) +
-      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) + 
+      ggtitle(cht_title, subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle)) +
       labs(x= x_title, y=ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
            caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line",
            size = 10) +
       scale_y_continuous(limits = c(ylimlow, ylimhigh),
                          breaks = breaks_pretty(),
                          labels = number_format(accuracy = 1, big.mark = ",")
-                         ) 
-    
+                         )
+
   } else {df}
 }
 

@@ -35,22 +35,30 @@ getSqlConnection <- function(){
 
 conn <- getSqlConnection()
 
-    query <- dbSendQuery(conn, "select * from AE_Data")
-    AE_Data <- dbFetch(query, n=-1)
-    assign("AE_Data", AE_Data, envir = .GlobalEnv)
+    # query <- dbSendQuery(conn, "select * from AE_Data")
+    # AE_Data <- dbFetch(query, n=-1)
+    # assign("AE_Data", AE_Data, envir = .GlobalEnv)
+    # 
+    # query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
+    # AE_Data_Scot <- dbFetch(query_scot, n=-1)
+    # assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     
-    query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
-    AE_Data_Scot <- dbFetch(query_scot, n=-1)
-    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+    query_perf <- dbSendQuery(conn, "select * from perf_series_df")
+    perf_series_df <- dbFetch(query_perf, n=-1)
+    assign("perf_series_df", perf_series_df, envir = .GlobalEnv)
     
 dbDisconnect(conn)
 
-AE_Data <- clean_region_col(AE_Data)
-AE_Data_Scot <- standardise_data(AE_Data_Scot)
+# AE_Data <- clean_region_col(AE_Data)
+# AE_Data_Scot <- standardise_data(AE_Data_Scot)
+# 
+# AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
+# assign("AE_Data", AE_Data, envir = .GlobalEnv)
+# assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
 
-AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
-assign("AE_Data", AE_Data, envir = .GlobalEnv)
-assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+perf_series_df <- perf_series_df %>%
+  mutate(Month_Start = as.Date(Month_Start)) %>%
+  mutate(onlyProvsReporting = as.logical(onlyProvsReporting))
 
 # Define UI
 ui <- dashboardPage(
@@ -283,9 +291,9 @@ server <- function(input, output) {
       weeklyOrMonthly <- "Monthly"
       onlyProvsReporting <- F
       if(input$t1_only_checkbox) {measure <- "Typ1"} 
-      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
+      if(input$weekly_checkbox) {weeklyOrMonthly <- "Weekly"}
       if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
-      tryCatch(plot_performance(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+      tryCatch(plot_performance(perf_series_df, code = code, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
                                 r1_col = r1_col, r2_col=r2_col,
@@ -316,11 +324,11 @@ server <- function(input, output) {
       onlyProvsReporting <- F
       if(input$t1_only_checkbox) {measure <- "Typ1"}
       weeklyOrMonthly <- "Monthly"
-      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
+      if(input$weekly_checkbox) {weeklyOrMonthly <- "Weekly"}
       if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
       
       if(volumeType == "Attendances"){
-        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+        tryCatch(plot_volume(perf_series_df, code = code, start.date = perf.start.date, end.date = perf.end.date,
                              brk.date = perf.brk.date, date.col = 'Month_Start',
                              x_title = "Month", measure = measure,
                              r1_col = r1_col, r2_col=r2_col,
@@ -329,7 +337,7 @@ server <- function(input, output) {
                              attOrAdm = "Attendances"), 
                  error=function(e) NULL)
       }else{
-        tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
+        tryCatch(plot_volume(perf_series_df, code = code, start.date = perf.start.date, end.date = perf.end.date,
                              brk.date = perf.brk.date, date.col = 'Month_Start',
                              x_title = "Month", measure = measure,
                              r1_col = r1_col, r2_col=r2_col,
