@@ -35,13 +35,13 @@ getSqlConnection <- function(){
 
 conn <- getSqlConnection()
 
-    # query <- dbSendQuery(conn, "select * from AE_Data")
-    # AE_Data <- dbFetch(query, n=-1)
-    # assign("AE_Data", AE_Data, envir = .GlobalEnv)
-    # 
-    # query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
-    # AE_Data_Scot <- dbFetch(query_scot, n=-1)
-    # assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+    query <- dbSendQuery(conn, "select * from AE_Data")
+    AE_Data <- dbFetch(query, n=-1)
+    assign("AE_Data", AE_Data, envir = .GlobalEnv)
+
+    query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
+    AE_Data_Scot <- dbFetch(query_scot, n=-1)
+    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
     
     query_perf <- dbSendQuery(conn, "select * from perf_series_df")
     perf_series_df <- dbFetch(query_perf, n=-1)
@@ -49,12 +49,12 @@ conn <- getSqlConnection()
     
 dbDisconnect(conn)
 
-# AE_Data <- clean_region_col(AE_Data)
-# AE_Data_Scot <- standardise_data(AE_Data_Scot)
-# 
-# AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
-# assign("AE_Data", AE_Data, envir = .GlobalEnv)
-# assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+AE_Data <- clean_region_col(AE_Data)
+AE_Data_Scot <- standardise_data(AE_Data_Scot)
+
+AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
+assign("AE_Data", AE_Data, envir = .GlobalEnv)
+assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
 
 perf_series_df <- perf_series_df %>%
   mutate(Month_Start = as.Date(Month_Start)) %>%
@@ -236,6 +236,7 @@ server <- function(input, output) {
   })
   
   provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Reg_Code','Region','Nat_Code','Country')]
+  #provLookup <- AE_Data[!duplicated(AE_Data[,c('Prov_Code')]),c('Prov_Code','Prov_Name','Region')]
   provLookup <- provLookup %>% arrange(Prov_Name) 
   
   orgNames <- provLookup[which(provLookup$Country == "England"),'Prov_Name']
