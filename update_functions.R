@@ -40,6 +40,7 @@ update_database <- function(data, country, conn){
     # assign("AE_Data_Scot_full", AE_Data_Scot_full, envir = .GlobalEnv)
   }
   AE_Data_full <- dbFetch(res, n=-1) 
+  assign("AE_Data_full", AE_Data_full, envir = .GlobalEnv)
   
   #create table of distinct filenames and contents hashs
   archivedFiles <- AE_Data_full %>%
@@ -52,55 +53,56 @@ update_database <- function(data, country, conn){
   AE_Data_newest <- AE_Data_timestamp %>%
     filter(hashSourceFileContents %notin% archivedFiles$hashSourceFileContents)
   
+  assign("AE_Data_newest", AE_Data_newest, envir = .GlobalEnv)
   
-  #Append new data into database
-  name <- ifelse(country == "England","AE_Data_full", "AE_Data_Scot_full")
-  dbWriteTable(conn, name = name, value = AE_Data_newest, row.names = FALSE, append = TRUE)
-  
-  #Pull back updated full table 
-  if(country == "England"){
-    res <- dbSendQuery(conn, "SELECT * from AE_Data_full")
-  }else{
-    res <- dbSendQuery(conn, "SELECT * from AE_Data_Scot_full")
-  }
-  AE_Data_full <- dbFetch(res, n=-1)
-  
-  #Filter for latest versions of each org-time_period
-  if(country == "England"){
-    AE_Data_new <- group_by(AE_Data_full,Prov_Code,Month_Start) %>%
-      filter(downloadDatetime == max(downloadDatetime)) %>%
-      distinct(Prov_Code, Month_Start, .keep_all = T) %>%
-      select(-c(SourceFile, hashSourceFileContents, downloadDatetime))
-  }else{
-    AE_Data_new <- group_by(AE_Data_full,Prov_Code,Week_End)%>%
-      filter(downloadDatetime == max(downloadDatetime)) %>% 
-      distinct(Prov_Code, Week_End, .keep_all = T) %>%
-      select(-c(SourceFile, hashSourceFileContents, downloadDatetime))
-  }
-  
-  ##populate AE_Data table with newest data
-  name <- ifelse(country == "England","AE_Data", "AE_Data_Scot")
-  dbWriteTable(conn, name = name, value = AE_Data_new, row.names = FALSE, overwrite = T)
-  
-  dbName <- config::get("dbname")
-  
-  ##number of new rows added
-  if(country == "England"){
-    #print the number of rows of the database
-    res <- dbSendQuery(conn, paste0("SELECT COUNT(*) FROM ",dbName,".AE_Data_full"))
-    print(paste("AE_Data_full count is",dbFetch(res)))
-    
-    noOfRowsAdded_AE_Data_full <- nrow(AE_Data_newest)
-    return(noOfRowsAdded_AE_Data_full)
-  }else{
-    #print the number of rows of the database
-    res <- dbSendQuery(conn, paste0("SELECT COUNT(*) FROM ",dbName,".AE_Data_Scot_full"))
-    print(paste("AE_Data_Scot_full count is",dbFetch(res)))
-    
-    noOfRowsAdded_AE_Data_Scot_full <- nrow(AE_Data_newest)
-    return(noOfRowsAdded_AE_Data_Scot_full)
-  }
-  
+  # #Append new data into database
+  # name <- ifelse(country == "England","AE_Data_full", "AE_Data_Scot_full")
+  # dbWriteTable(conn, name = name, value = AE_Data_newest, row.names = FALSE, append = TRUE)
+  # 
+  # #Pull back updated full table 
+  # if(country == "England"){
+  #   res <- dbSendQuery(conn, "SELECT * from AE_Data_full")
+  # }else{
+  #   res <- dbSendQuery(conn, "SELECT * from AE_Data_Scot_full")
+  # }
+  # AE_Data_full <- dbFetch(res, n=-1)
+  # 
+  # #Filter for latest versions of each org-time_period
+  # if(country == "England"){
+  #   AE_Data_new <- group_by(AE_Data_full,Prov_Code,Month_Start) %>%
+  #     filter(downloadDatetime == max(downloadDatetime)) %>%
+  #     distinct(Prov_Code, Month_Start, .keep_all = T) %>%
+  #     select(-c(SourceFile, hashSourceFileContents, downloadDatetime))
+  # }else{
+  #   AE_Data_new <- group_by(AE_Data_full,Prov_Code,Week_End)%>%
+  #     filter(downloadDatetime == max(downloadDatetime)) %>% 
+  #     distinct(Prov_Code, Week_End, .keep_all = T) %>%
+  #     select(-c(SourceFile, hashSourceFileContents, downloadDatetime))
+  # }
+  # 
+  # ##populate AE_Data table with newest data
+  # name <- ifelse(country == "England","AE_Data", "AE_Data_Scot")
+  # dbWriteTable(conn, name = name, value = AE_Data_new, row.names = FALSE, overwrite = T)
+  # 
+  # dbName <- config::get("dbname")
+  # 
+  # ##number of new rows added
+  # if(country == "England"){
+  #   #print the number of rows of the database
+  #   res <- dbSendQuery(conn, paste0("SELECT COUNT(*) FROM ",dbName,".AE_Data_full"))
+  #   print(paste("AE_Data_full count is",dbFetch(res)))
+  #   
+  #   noOfRowsAdded_AE_Data_full <- nrow(AE_Data_newest)
+  #   return(noOfRowsAdded_AE_Data_full)
+  # }else{
+  #   #print the number of rows of the database
+  #   res <- dbSendQuery(conn, paste0("SELECT COUNT(*) FROM ",dbName,".AE_Data_Scot_full"))
+  #   print(paste("AE_Data_Scot_full count is",dbFetch(res)))
+  #   
+  #   noOfRowsAdded_AE_Data_Scot_full <- nrow(AE_Data_newest)
+  #   return(noOfRowsAdded_AE_Data_Scot_full)
+  # }
+  # 
 }
 
 
@@ -152,18 +154,18 @@ send_email <- function(country = "England", state){
 update_database_error_handle <- function(data, country, conn){
   
   #loop to retry if error and to send an email
-  err <- T
+  err <- TRUE
   tries <- 1
   
-  while(err == T & tries <= 3){
+  while(err == TRUE & tries <= 3){
     tryCatch({
       rowsAdded <- update_database(data = data, country = country, conn = conn)
       #send_email(country = country, state = "success")
-      err <- F
+      err <- FALSE
     }, warning = function(w) {
-        err <- F
+        err <- FALSE
     }, error = function(e) {
-        err <- T
+        err <- TRUE
         if(tries == 3){
           #send_email(country = country, state = "error")
         }
@@ -319,4 +321,37 @@ make_perf_series_data_frame <- function(data = AE_Data,
   #edit column types to be compatible with database
   perf_series_df <- perf_series_df %>%
     mutate(onlyProvsReporting = as.character(onlyProvsReporting))
+}
+
+
+#function to update perf_series_dataframe
+update_perf_series_data_frame <- function(data = AE_Data,
+                                          data_scot = AE_Data_Scot){
+  
+  perf_series_df_all_FALSE <- make_perf_series_data_frame(data = AE_Data,
+                                                          data_scot = AE_Data_Scot,
+                                                          measureArg = "All",
+                                                          onlyProvsReportingArg = FALSE)
+  
+  perf_series_df_Typ1_FALSE <- make_perf_series_data_frame(data = AE_Data,
+                                                           data_scot = AE_Data_Scot,
+                                                           measureArg = "Typ1",
+                                                           onlyProvsReportingArg = FALSE)
+  
+  perf_series_df_all_TRUE <- make_perf_series_data_frame(data = AE_Data,
+                                                         data_scot = AE_Data_Scot,
+                                                         measureArg = "All",
+                                                         onlyProvsReportingArg = TRUE)
+  
+  perf_series_df_Typ1_TRUE <- make_perf_series_data_frame(data = AE_Data,
+                                                          data_scot = AE_Data_Scot,
+                                                          measureArg = "Typ1",
+                                                          onlyProvsReportingArg = TRUE)
+  
+  
+  perf_series_df <- bind_rows(perf_series_df_all_FALSE, 
+                              perf_series_df_Typ1_FALSE,
+                              perf_series_df_all_TRUE,
+                              perf_series_df_Typ1_TRUE)
+  
 }
