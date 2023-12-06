@@ -83,16 +83,18 @@ regional_analysis <- function(df, level, onlyProvsReporting){
     }
 
   dfReg <- df %>%
-      group_by(Name, Code, Month_Start) %>%
-      summarise(Att_Typ1 = sum(Att_Typ1), Att_Typ2 = sum(Att_Typ2),
-                Att_Typ3 = sum(Att_Typ3), Att_All = sum(Att_All), Att_Typ1_Br = sum(Att_Typ1_Br),
-                Att_Typ2_Br = sum(Att_Typ2_Br), Att_Typ3_Br = sum(Att_Typ3_Br), Att_All_Br = sum(Att_All_Br),
-                Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1, Perf_All = (Att_All - Att_All_Br)/Att_All,
-                E_Adm_Typ1 = sum(E_Adm_Typ1), E_Adm_Typ2 = sum(E_Adm_Typ2), E_Adm_Typ34 = sum(E_Adm_Typ34),
-                E_Adm_All_ED = sum(E_Adm_All_ED), E_Adm_Not_ED = sum(E_Adm_Not_ED), E_Adm_All = sum(E_Adm_All),
-                E_Adm_4hBr_D = sum(E_Adm_4hBr_D), E_Adm_12hBr_D = sum(E_Adm_12hBr_D),
-                Nat_Code = dplyr::first(Nat_Code)) %>%
-      ungroup()
+    group_by(Name, Code, Month_Start) %>%
+    summarise(across(matches("^Att_((?!Br).)*$",
+                             perl = TRUE),
+                     ~sum(.x, na.rm = TRUE)),
+              across(matches("^Att_.*_Br$"),
+                     sum),
+              Perf_Typ1 = (Att_Typ1 - Att_Typ1_Br)/Att_Typ1,
+              Perf_All = (Att_All - Att_All_Br)/Att_All,
+              across(matches("^E_Adm_.*$"),
+                     sum),
+              Nat_Code = dplyr::first(Nat_Code)) %>%
+    ungroup()
 
 }
 
