@@ -23,7 +23,7 @@ More details on the methods used can be found in the "Understanding the analysis
 You will need to install the following packages:
 
 ```{r prerequisites, eval=FALSE, echo=TRUE}
-install.packages(c('shiny','shinydashboard','tidyverse','stringr','qicharts2','scales','zoo','wktmo','testthat'))
+install.packages(c('shiny','shinydashboard','tidyverse','stringr','scales','zoo','wktmo','testthat'))
 devtools::install_github('HorridTom/nhsAEscraper')
 ```
 
@@ -44,11 +44,23 @@ source("perf_4h_analysis.R")
 source("spc_rules.R")
 AE_Data <- nhsAEscraper::getAE_data(update_data = TRUE, directory = 'data-raw')
 AE_Data_CRC <- clean_region_col(AE_Data)
-plot_performance(df = AE_Data_CRC, code = 'E', brk.date = NULL, measure = 'All',
-                 start.date = "2015-07-01", end.date = "2017-09-30", level = "National")
+plot_performance(df = AE_Data_CRC,
+                 code = 'E',
+                 brk.date = NULL,
+                 measure = 'All',
+                 start.date = "2015-07-01",
+                 end.date = "2017-09-30",
+                 level = "National",
+                 onlyProvsReporting = TRUE)
 
-plot_volume(df = AE_Data_CRC, code = 'E', brk.date = NULL, measure = 'All',
-                 start.date = "2015-07-01", end.date = "2017-09-30", level = "National")
+plot_volume(df = AE_Data_CRC,
+            code = 'E',
+            brk.date = NULL,
+            measure = 'All',
+            start.date = "2015-07-01",
+            end.date = "2017-09-30",
+            level = "National",
+            onlyProvsReporting = TRUE)
 ```
 
 

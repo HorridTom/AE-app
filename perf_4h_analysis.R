@@ -1,6 +1,5 @@
 library(tidyverse)
 library(dplyr)
-library(qicharts2)
 library(ggplot2)
 library(scales)
 library(zoo)
@@ -158,7 +157,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                              pr_name = NULL, x_title = "Month",
                              r1_col = "orange", r2_col = "steelblue3",
                              level = level, weeklyOrMonthly = "Monthly",
-                             onlyProvsReporting = onlyProvsReporting) { 
+                             onlyProvsReporting) { 
   
   cht_title = "Percentage A&E attendances\nwith time in department < 4h"
   
@@ -283,7 +282,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   
   if(plot.chart == TRUE) {
     
-    if(attOrAdm == "Attendances"){qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
+    if(attOrAdm == "Attendances"){
       autospc::plot_auto_SPC(df, 
                              x = Month_Start,
                              y = daily_ave_att,
@@ -295,7 +294,6 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
       #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
     }else{
-      qicharts2::qic(Month_Start, daily_ave_att, n = rep(1, nrow(df)), data = df, chart = 'up')
       autospc::plot_auto_SPC(df, 
                              x = Month_Start,
                              y = daily_ave_adm,
