@@ -213,7 +213,12 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
                            title = cht_title,
                            subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                            override_x_title = x_title,
-                           override_y_title = "Percentage within 4 hours")
+                           override_y_title = "Percentage within 4 hours",
+                           annotation_size = 4,
+                           upper_annotation_sf = 1.08,
+                           lower_annotation_sf = 0.92,
+                           flip_labels = TRUE
+                           )
     #still need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits \nRule 2: Eight or more consecutive months all above, or all below, the centre line"
 
   } else {df}
@@ -290,7 +295,13 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              title = cht_title,
                              subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                              override_x_title = x_title,
-                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"))
+                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
+                             annotation_size = 4,
+                             upper_annotation_sf = 1.1,
+                             lower_annotation_sf = 0.9,
+                             flip_labels = FALSE,
+                             align_labels = TRUE,
+                             annotation_arrows = TRUE)
       #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
       #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
     }else{
@@ -301,7 +312,13 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                              title = cht_title,
                              subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                              override_x_title = x_title,
-                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"))
+                             override_y_title = ifelse(attOrAdm == "Attendances","Average daily attendances", "Average daily admissions"),
+                             annotation_size = 4,
+                             upper_annotation_sf = 1.1,
+                             lower_annotation_sf = 0.9,
+                             flip_labels = FALSE,
+                             align_labels = TRUE,
+                             annotation_arrows = TRUE)
       #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
       #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
       }
