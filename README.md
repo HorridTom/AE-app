@@ -3,61 +3,81 @@
 
 # AE-app
 
-The goal of AE-app is to provide interactive analysis of time series
+AE-app, the A&E Tracker, provides interactive analysis of time series
 data on accident and emergency department attendances. A live instance
-of the app can be found [here](https://clahrcnwl.shinyapps.io/ae-app/).
+of the app is [here](https://clahrcnwl.shinyapps.io/ae-app/).
 
-The app currently provides analysis of the monthly number of
-attendances, and the percentage of attendances where the patient was
-admitted, transferred or discharged within four hours of arrival. The
-app performs this analysis for publicly available [NHS
+The app uses Shewhart charts, drawn with
+[autospc](https://github.com/HorridTom/autospc), to analyse the
+percentage of attendances where the patient was admitted, transferred or
+discharged within four hours of arrival, and the average daily numbers
+of attendances and of emergency admissions. It does this for publicly
+available [NHS
 England](https://www.england.nhs.uk/statistics/statistical-work-areas/ae-waiting-times-and-activity/)
-and [NHS
-Scotland](http://www.isdscotland.org/Health-Topics/Emergency-Care/Publications/data-tables2017.asp?id)
-data.
+and [Public Health
+Scotland](https://www.opendata.nhs.scot/dataset/weekly-accident-and-emergency-activity-and-waiting-times)
+data, nationally, by region or health board, and by provider or
+hospital.
 
-More details on the methods used can be found in the “Understanding the
-analysis” tab of the app.
+More details on the methods used are in the “Understanding the analysis”
+tab of the app.
 
 ## Data
 
-The app reads its data from the [AE-data](https://github.com/HorridTom/AE-data)
-repository, where a scheduled GitHub Action updates it every week using
-[nhsAEscraper](https://github.com/HorridTom/nhsAEscraper). (Until 2025 the data
-was held in a MySQL database on AWS.) The app reads the data once, when it
-starts, so a running copy picks up new data when it next restarts.
+The app reads its data from the
+[AE-data](https://github.com/HorridTom/AE-data) repository, where a
+scheduled GitHub Action updates it every week using
+[nhsAEscraper](https://github.com/HorridTom/nhsAEscraper). (Until 2025
+the data was held in a MySQL database on AWS.) The app reads the data
+once, when it starts, so a running copy picks up new data when it next
+restarts.
+
+Contains public sector information licensed under the [Open Government
+Licence
+v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
 
 ## Run the app locally
 
-You will need to install the following packages:
+The package versions the app uses are recorded with
+[renv](https://rstudio.github.io/renv/). After cloning this repo, open
+the project and run:
 
 ``` r
-install.packages(c("shiny", "shinydashboard", "shinyjs", "tidyverse", "scales",
-                   "zoo", "lubridate", "wktmo", "testthat", "remotes"))
-remotes::install_github("HorridTom/autospc")
-```
-
-After cloning this repo, run the app as usual with:
-
-``` r
+renv::restore()
 shiny::runApp()
 ```
 
-This needs an internet connection to download the data. To use a local copy of
-the AE-data repository instead:
+This needs an internet connection to download the data. To use a local
+copy of the AE-data repository instead:
 
 ``` r
 Sys.setenv(AE_DATA_SOURCE = "~/Rprojects/AE-data/data")
 shiny::runApp()
 ```
 
+## Code
+
+`app.R` loads the data and starts the app. The functions it uses are in
+`R/`, which Shiny loads automatically:
+
+| File                       | Contents                                                                      |
+|----------------------------|-------------------------------------------------------------------------------|
+| `data_loading.R`           | Reading the data from AE-data                                                 |
+| `data_preparation.R`       | Putting England’s and Scotland’s data in one format; looking up organisations |
+| `series.R`                 | `make_series()`: the time series for one organisation                         |
+| `charts.R`                 | `chart_performance()` and `chart_volume()`: the Shewhart charts               |
+| `app_ui.R`, `app_server.R` | The app’s layout, and its responses to the user’s choices                     |
+| `chart_module.R`           | A chart with its download button                                              |
+| `ui_text.R`                | Text of the “Understanding the analysis” and “Development” tabs               |
+
 ## Tests
 
 ``` r
-testthat::test_dir("tests")
+shiny::runTests()
 ```
 
-The test data in `tests/test-data` is made by `tests/make_test_data.R`.
+The test data in `tests/testthat/test-data` is made by
+`tests/testthat/make_test_data.R`.
 
 ## Deploy
 
@@ -69,11 +89,8 @@ The app is hosted on [shinyapps.io](https://www.shinyapps.io/) (account
 rsconnect::deployApp(appName = "ae-app", account = "clahrcnwl")
 ```
 
-autospc must be installed from GitHub (as above), so that shinyapps.io can
-install the same version.
-
 ## Example analyses
 
-Example control chart analyses are shown below for the whole of England.
+Example charts for the whole of England.
 
 ![](README_files/figure-gfm/england-1.png)<!-- -->![](README_files/figure-gfm/england-2.png)<!-- -->

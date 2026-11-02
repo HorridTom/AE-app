@@ -45,8 +45,10 @@ ae_file_name <- function(country) {
 
 # Read one country's data from `source` (a folder or URL), falling back to the
 # local copy. Returns a data.frame without the SourceFile column.
-read_ae_file <- function(country, source = Sys.getenv("AE_DATA_SOURCE",
-                                                       default_data_source)) {
+read_ae_file <- function(
+  country,
+  source = Sys.getenv("AE_DATA_SOURCE", default_data_source)
+) {
   location <- if (grepl("^https?://", source)) {
     paste(source, ae_file_name(country), sep = "/")
   } else {
@@ -55,28 +57,55 @@ read_ae_file <- function(country, source = Sys.getenv("AE_DATA_SOURCE",
   local_copy <- file.path(local_data_dir, ae_file_name(country))
 
   df <- tryCatch(
-    readr::read_csv(location, col_types = ae_col_types[[country]],
-                    progress = FALSE),
+    readr::read_csv(
+      location,
+      col_types = ae_col_types[[country]],
+      progress = FALSE
+    ),
     error = function(e) {
-      if (!file.exists(local_copy) ||
-          normalizePath(local_copy) == normalizePath(location, mustWork = FALSE)) {
-        stop("Could not read the ", country, " A&E data from ", location,
-             ": ", conditionMessage(e), call. = FALSE)
+      if (
+        !file.exists(local_copy) ||
+          normalizePath(local_copy) == normalizePath(location, mustWork = FALSE)
+      ) {
+        stop(
+          "Could not read the ",
+          country,
+          " A&E data from ",
+          location,
+          ": ",
+          conditionMessage(e),
+          call. = FALSE
+        )
       }
-      warning("Could not read the ", country, " A&E data from ", location,
-              " (", conditionMessage(e), "). Using the copy in ", local_copy,
-              ".", call. = FALSE)
-      readr::read_csv(local_copy, col_types = ae_col_types[[country]],
-                      progress = FALSE)
+      warning(
+        "Could not read the ",
+        country,
+        " A&E data from ",
+        location,
+        " (",
+        conditionMessage(e),
+        "). Using the copy in ",
+        local_copy,
+        ".",
+        call. = FALSE
+      )
+      readr::read_csv(
+        local_copy,
+        col_types = ae_col_types[[country]],
+        progress = FALSE
+      )
     }
   )
 
   # Keep a copy to fall back on next time. Failing to write it doesn't matter.
   if (grepl("^https?://", location)) {
-    try({
-      dir.create(local_data_dir, showWarnings = FALSE)
-      readr::write_csv(df, local_copy, na = "")
-    }, silent = TRUE)
+    try(
+      {
+        dir.create(local_data_dir, showWarnings = FALSE)
+        readr::write_csv(df, local_copy, na = "")
+      },
+      silent = TRUE
+    )
   }
 
   df$SourceFile <- NULL
