@@ -171,8 +171,8 @@ ui <- dashboardPage(
                h2("Coming soon..."),
                p("In the near future we hope to implement the following new features:"),
                tags$ol(
-                 tags$li("Improved look and feel"),
-                 tags$li("Distinct periods for control limits, to better reflect shifts in the measures")
+                 tags$li("..."),
+                 tags$li("...")
                )
                )
       )
