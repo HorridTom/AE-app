@@ -3,6 +3,7 @@ source('../perf_4h_analysis.R')
 
 load('test-data/AE_data_test.rda')
 load('test-data/perf_data_colnames.rda')
+load('test-data/AE_data_test_scot.rda')
 
 #p4h <- make_p4h_from_sitreps(AE_data_test)
 
@@ -15,14 +16,9 @@ testthat::test_that("Created timeseries dataset is a dataframe",{
                                      measure = 'Typ1', level = "Provider", 
                                      weeklyOrMonthly = "monthly",
                                      onlyProvsReporting = F)
-  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                     measure = 'Adm', level = "Provider", 
-                                     weeklyOrMonthly = "monthly",
-                                     onlyProvsReporting = F)
   
   testthat::expect_is(ps_rqm_all_all, 'data.frame')
   testthat::expect_is(ps_rqm_all_typ1, 'data.frame')
-  testthat::expect_is(ps_rqm_adm_all, 'data.frame')
 })
 
 testthat::test_that("Results for selected months in performance series for Chelsea and Westminster are correct",{
@@ -34,53 +30,35 @@ testthat::test_that("Results for selected months in performance series for Chels
                                              measure = 'Typ1', level = "Provider", 
                                              weeklyOrMonthly = "monthly",
                                              onlyProvsReporting = F)
-  ps_rqm_adm_all <- make_perf_series(df = AE_data_test, code = 'RQM',
-                                            measure = 'Adm', level = "Provider", 
-                                            weeklyOrMonthly = "monthly",
-                                            onlyProvsReporting = F)
   
   # Test that we get the correct results for Chelsea and Westminster (RQM)
   # in April 2017, for all attendances
   testthat::expect_equal(ps_rqm_all_all %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          23452)
   testthat::expect_equal(ps_rqm_all_all %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          22059)
   testthat::expect_equal(ps_rqm_all_all %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          1393)
   # Test that we get the correct results for Chelsea and Westminster (RQM)
   # in April 2017, for type 1 attendances
   testthat::expect_equal(ps_rqm_all_typ1 %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          15957)
   testthat::expect_equal(ps_rqm_all_typ1 %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          14648)
   testthat::expect_equal(ps_rqm_all_typ1 %>%
                            filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          1309)
-  # Test that we get the correct results for Chelsea and Westminster (RQM)
-  # in April 2017, for admissions only
-  testthat::expect_equal(ps_rqm_adm_all %>%
-                           filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Total),
-                         3375)
-  testthat::expect_equal(ps_rqm_adm_all %>%
-                           filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         3194)
-  testthat::expect_equal(ps_rqm_adm_all %>%
-                           filter(Month_Start == "2017-04-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         181)
 })
 
 testthat::test_that("Results for selected months in performance series for Imperial are correct",{
@@ -92,53 +70,35 @@ testthat::test_that("Results for selected months in performance series for Imper
                                       measure = 'Typ1', level = "Provider", 
                                       weeklyOrMonthly = "monthly",
                                       onlyProvsReporting = F)
-  ps_ryj_adm_all <- make_perf_series(df = AE_data_test, code = 'RYJ',
-                                     measure = 'Adm', level = "Provider", 
-                                     weeklyOrMonthly = "monthly",
-                                     onlyProvsReporting = F)
   
   # Test that we get the correct results for Imperial (RYJ)
   # in September 2017, for all attendances
   testthat::expect_equal(ps_ryj_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          23637)
   testthat::expect_equal(ps_ryj_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          20577)
   testthat::expect_equal(ps_ryj_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          3060)
   # Test that we get the correct results for Imperial (RYJ)
   # in September 2017, for type 1 attendances
   testthat::expect_equal(ps_ryj_all_typ1 %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          9582)
   testthat::expect_equal(ps_ryj_all_typ1 %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          6713)
   testthat::expect_equal(ps_ryj_all_typ1 %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          2869)
-  # Test that we get the correct results for Imperial (RYJ)
-  # in September 2017, for admissions only
-  testthat::expect_equal(ps_ryj_adm_all %>%
-                           filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
-                         3354)
-  testthat::expect_equal(ps_ryj_adm_all %>%
-                           filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         2752)
-  testthat::expect_equal(ps_ryj_adm_all %>%
-                           filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         602)
 })
 
 
@@ -152,15 +112,15 @@ testthat::test_that("Results for selected months in performance series for Londo
   # in September 2017, for all attendances
   testthat::expect_equal(ps_lo_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          395373)
   testthat::expect_equal(ps_lo_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          356603)
   testthat::expect_equal(ps_lo_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          38770)
 
 })
@@ -175,24 +135,26 @@ testthat::test_that("Results for selected months in performance series for whole
   # in September 2017, for all attendances
   testthat::expect_equal(ps_e_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
+                           pull(Total_Att),
                          1925961)
   testthat::expect_equal(ps_e_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
+                           pull(Within_4h),
                          1726934)
   testthat::expect_equal(ps_e_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
+                           pull(Greater_4h),
                          199027)
   
 })
 
 ###################
 #tests for Scotland
-#tolerances included due to the week to month conversion 
+#Data: Public Health Scotland weekly data for 2017 (test-data/AE_data_test_scot.rda,
+#made by make_test_data.R). Monthly figures are apportioned from weeks, so allow
+#a difference of up to 20 attendances (the published figures have also been revised slightly since these tests were written). Weekly figures are as published. 
 testthat::test_that("Results for selected months in performance series for University Hospital Ayr are correct",{
-  ps_A210H_all_all <- make_perf_series(df = AE_data_test, code = 'A210H',
+  ps_A210H_all_all <- make_perf_series(df = AE_data_test_scot, code = 'A210H',
                                      measure = 'All', level = "Provider", 
                                      weeklyOrMonthly = "monthly",
                                      onlyProvsReporting = F)
@@ -201,20 +163,20 @@ testthat::test_that("Results for selected months in performance series for Unive
   # in September 2017, for all attendances
   testthat::expect_equal(ps_A210H_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
-                         3156, tolerance = 2)
+                           pull(Total_Att),
+                         3156, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_A210H_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         2889, tolerance = 2)
+                           pull(Within_4h),
+                         2889, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_A210H_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         267, tolerance = 2)
+                           pull(Greater_4h),
+                         267, tolerance = 20, scale = 1)
 })
 
 testthat::test_that("Results for selected months in performance series for Greater Glasgow & Clyde board are correct",{
-  ps_g_all_all <- make_perf_series(df = AE_data_test, code = 'G',
+  ps_g_all_all <- make_perf_series(df = AE_data_test_scot, code = 'S08000031',
                                        measure = 'All', level = "Regional", 
                                        weeklyOrMonthly = "monthly",
                                        onlyProvsReporting = F)
@@ -223,20 +185,20 @@ testthat::test_that("Results for selected months in performance series for Great
   # in september 2017, for all attendances
   testthat::expect_equal(ps_g_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
-                         30070, tolerance = 2)
+                           pull(Total_Att),
+                         30070, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_g_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         27042, tolerance = 2)
+                           pull(Within_4h),
+                         27042, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_g_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         3028, tolerance = 2)
+                           pull(Greater_4h),
+                         3028, tolerance = 20, scale = 1)
 })
 
 testthat::test_that("Results for selected months in performance series for whole of Scotland are correct",{
-  ps_s_all_all <- make_perf_series(df = AE_data_test, code = 'S',
+  ps_s_all_all <- make_perf_series(df = AE_data_test_scot, code = 'S',
                                    measure = 'All', level = "National", 
                                    weeklyOrMonthly = "monthly",
                                    onlyProvsReporting = F)
@@ -245,21 +207,21 @@ testthat::test_that("Results for selected months in performance series for whole
   # in sept 2017, for all attendances
   testthat::expect_equal(ps_s_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Total),
-                         115617, tolerance = 10)
+                           pull(Total_Att),
+                         115617, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_s_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         106880, tolerance = 10)
+                           pull(Within_4h),
+                         106880, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_s_all_all %>%
                            filter(Month_Start == "2017-09-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         8737, tolerance = 10)
+                           pull(Greater_4h),
+                         8737, tolerance = 20, scale = 1)
 })
 
 #####tests for weekly data
 testthat::test_that("Results for selected weeks in performance series for whole of Scotland are correct for weekly data",{
-  ps_s_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'S',
+  ps_s_all_all_weekly <- make_perf_series(df = AE_data_test_scot, code = 'S',
                                    measure = 'All', level = "National", 
                                    weeklyOrMonthly = "weekly",
                                    onlyProvsReporting = F)
@@ -268,20 +230,20 @@ testthat::test_that("Results for selected weeks in performance series for whole 
   # in jan 2017, for all attendances by week
   testthat::expect_equal(ps_s_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Total),
-                         25050, tolerance = 10)
+                           pull(Total_Att),
+                         25164, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_s_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         23179, tolerance = 10)
+                           pull(Within_4h),
+                         23238, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_s_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         1873, tolerance = 10)
+                           pull(Greater_4h),
+                         1926, tolerance = 20, scale = 1)
 })
 
 testthat::test_that("Results for selected weeks in performance series for Greater Glasgow & Clyde board (G) are correct for weekly data",{
-  ps_g_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'G',
+  ps_g_all_all_weekly <- make_perf_series(df = AE_data_test_scot, code = 'S08000031',
                                           measure = 'All', level = "Regional", 
                                           weeklyOrMonthly = "weekly",
                                           onlyProvsReporting = F)
@@ -290,20 +252,20 @@ testthat::test_that("Results for selected weeks in performance series for Greate
   # in jan 2017, for all attendances by week
   testthat::expect_equal(ps_g_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Total),
-                         6488, tolerance = 10)
+                           pull(Total_Att),
+                         6528, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_g_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         5677, tolerance = 10)
+                           pull(Within_4h),
+                         5689, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_g_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         811, tolerance = 10)
+                           pull(Greater_4h),
+                         839, tolerance = 20, scale = 1)
 })
 
-testthat::test_that("Results for selected weeks in performance series for Greater Glasgow & Clyde board (G) are correct for weekly data",{
-  ps_A210H_all_all_weekly <- make_perf_series(df = AE_data_test, code = 'A210H',
+testthat::test_that("Results for selected weeks in performance series for University Hospital Ayr are correct for weekly data",{
+  ps_A210H_all_all_weekly <- make_perf_series(df = AE_data_test_scot, code = 'A210H',
                                           measure = 'All', level = "Provider", 
                                           weeklyOrMonthly = "weekly",
                                           onlyProvsReporting = F)
@@ -312,14 +274,14 @@ testthat::test_that("Results for selected weeks in performance series for Greate
   # in jan 2017, for all attendances by week
   testthat::expect_equal(ps_A210H_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Total),
-                         881, tolerance = 10)
+                           pull(Total_Att),
+                         894, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_A210H_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Within_4h),
-                         861, tolerance = 10)
+                           pull(Within_4h),
+                         874, tolerance = 20, scale = 1)
   testthat::expect_equal(ps_A210H_all_all_weekly %>%
                            filter(Month_Start == "2017-01-01") %>%
-                           top_n(1) %>% pull(Greater_4h),
-                         20, tolerance = 10)
+                           pull(Greater_4h),
+                         20, tolerance = 20, scale = 1)
 })

@@ -2,12 +2,11 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(stringr)
-library(RMySQL)
-library(DBI)
 
 Sys.setenv(TZ='Europe/London')
 source("spc_rules.R")
 source("perf_4h_analysis.R")
+source("data_loading.R")
 
 #suppress summarise informating printing
 options(dplyr.summarise.inform = FALSE)
@@ -15,38 +14,13 @@ options(dplyr.summarise.inform = FALSE)
 r1_col = "orange"
 r2_col = "steelblue3"
 
-#Function for getting new connection to Cloud SQL
-getSqlConnection <- function(){
-  conn <-
-    dbConnect(
-      RMySQL::MySQL(),
-      user = config::get("user"),
-      password = config::get("password"),
-      host = config::get("host"),
-      dbname = config::get("dbname"),
-      port = config::get("port")
-    ) 
-  return(conn)
-}
-
-conn <- getSqlConnection()
-
-    query <- dbSendQuery(conn, "select * from AE_Data")
-    AE_Data <- dbFetch(query, n=-1)
-    assign("AE_Data", AE_Data, envir = .GlobalEnv)
-    
-    query_scot <- dbSendQuery(conn, "select * from AE_Data_Scot")
-    AE_Data_Scot <- dbFetch(query_scot, n=-1)
-    assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
-    
-dbDisconnect(conn)
+AE_Data <- read_ae_file("England")
+AE_Data_Scot <- read_ae_file("Scotland")
 
 AE_Data <- clean_region_col(AE_Data)
 AE_Data_Scot <- standardise_data(AE_Data_Scot)
 
-AE_Data <- merge(AE_Data, AE_Data_Scot, all = T)
-assign("AE_Data", AE_Data, envir = .GlobalEnv)
-assign("AE_Data_Scot", AE_Data_Scot, envir = .GlobalEnv)
+AE_Data <- dplyr::bind_rows(AE_Data, AE_Data_Scot)
 
 # Define UI
 ui <- dashboardPage(
@@ -60,7 +34,7 @@ ui <- dashboardPage(
                     tags$a(href='http://clahrc-northwestlondon.nihr.ac.uk/',
                            tags$img(src="CLAHRC-logo-white.png", height = 60, width = 190, vspace="10"),
                            target="_blank"),
-      sidebarMenu(id = "tabs", menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital-o", lib = "font-awesome"))
+      sidebarMenu(id = "tabs", menuItem("Analyse A&E data", tabName = "analysis", icon = icon("hospital"))
       ),
       conditionalPanel(condition = "input.tabs === 'analysis'",
                        uiOutput("countryChoice"),
@@ -252,25 +226,35 @@ server <- function(input, output) {
   output$downButt <- renderUI({downloadButton('downloadAdmVolPlot', 'Download Admissions Chart')})
   
 
+  # The code of the organisation (provider, region/board or country) chosen
+  selected_code <- reactive({
+    req(input$country, input$level)
+    lookup <- provLookup[provLookup$Country == input$country, ]
+    england <- input$country == "England"
+    if (input$level == "Provider") {
+      name <- if (england) input$trust else input$trustScot
+      req(name)
+      lookup$Prov_Code[lookup$Prov_Name == name][1]
+    } else if (input$level == "Regional") {
+      name <- if (england) input$region else input$regionScot
+      req(name)
+      lookup$Reg_Code[lookup$Region == name][1]
+    } else {
+      lookup$Nat_Code[1]
+    }
+  })
+
   edPerfPlotInput <- function() {
-    if (length(input$trust) != 0 & length(input$level) != 0) {
+    {
       level <- input$level
-      if(level == "Provider"){
-        code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
-                       provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
-      }else if(level == "Regional"){
-        code <- ifelse(input$country == "England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
-                       provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
-      }else{
-        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
-      }
+      code <- selected_code()
       
       measure <- "All"
       weeklyOrMonthly <- "Monthly"
       onlyProvsReporting <- F
-      if(input$t1_only_checkbox) {measure <- "Typ1"} 
-      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
-      if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
+      if(input$country == "England" && isTRUE(input$t1_only_checkbox)) {measure <- "Typ1"} 
+      if(input$country == "Scotland" && isTRUE(input$weekly_checkbox)) {weeklyOrMonthly <- "weekly"}
+      if(input$country == "England" && isTRUE(input$still_reporting_checkbox)) {onlyProvsReporting <- T}
       tryCatch(plot_performance(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
                                 brk.date = perf.brk.date, date.col = 'Month_Start',
                                 x_title = "Month", measure = measure,
@@ -282,28 +266,23 @@ server <- function(input, output) {
   }
   
   output$edPerfPlot <- renderPlot({
-    print(edPerfPlotInput())
+    req(input$country, input$level)
+    chart <- edPerfPlotInput()
+    validate(need(!is.null(chart), "There is no data to chart for this selection."))
+    print(chart)
   })
   
   edVolPlotInput <- function(volumeType = "Attendances") {
-    if (length(input$trust) != 0 & length(input$level) != 0) {
+    {
       level <- input$level
-      if(level == "Provider"){
-        code <- ifelse(input$country == "England",provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Code'][1],
-                       provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Code'][1])
-      }else if(level == "Regional"){
-        code <- ifelse(input$country == "England",provLookup[which(provLookup$Region == input$region),'Reg_Code'][1],
-                       provLookup[which(provLookup$Region == input$regionScot),'Reg_Code'][1])
-      }else{
-        code <- provLookup[which(provLookup$Country == input$country),'Nat_Code'][1]
-      }
+      code <- selected_code()
       
       measure <- "All"
       onlyProvsReporting <- F
-      if(input$t1_only_checkbox) {measure <- "Typ1"}
+      if(input$country == "England" && isTRUE(input$t1_only_checkbox)) {measure <- "Typ1"}
       weeklyOrMonthly <- "Monthly"
-      if(input$weekly_checkbox) {weeklyOrMonthly <- "weekly"}
-      if(input$still_reporting_checkbox) {onlyProvsReporting <- T}
+      if(input$country == "Scotland" && isTRUE(input$weekly_checkbox)) {weeklyOrMonthly <- "weekly"}
+      if(input$country == "England" && isTRUE(input$still_reporting_checkbox)) {onlyProvsReporting <- T}
       
       if(volumeType == "Attendances"){
         tryCatch(plot_volume(AE_Data, code = code, start.date = perf.start.date, end.date = perf.end.date,
@@ -329,11 +308,17 @@ server <- function(input, output) {
   }
   
   output$edVolPlot <- renderPlot({
-    print(edVolPlotInput(volumeType = "Attendances"))
+    req(input$country, input$level)
+    chart <- edVolPlotInput(volumeType = "Attendances")
+    validate(need(!is.null(chart), "There is no data to chart for this selection."))
+    print(chart)
   })
   
   output$edAdmVolPlot <- renderPlot({
-    print(edVolPlotInput(volumeType = "Admissions"))
+    req(input$country == "England")
+    chart <- edVolPlotInput(volumeType = "Admissions")
+    validate(need(!is.null(chart), "There is no data to chart for this selection."))
+    print(chart)
   })
   
   # R studio bug so correct download name only works when you run app via runApp(launch.browser = T) command
@@ -343,7 +328,7 @@ server <- function(input, output) {
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
-        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
+        typ <- ifelse(isTRUE(input$t1_only_checkbox),"Type1","AllTypes")
         
       }else{
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
@@ -356,7 +341,7 @@ server <- function(input, output) {
       
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
             plotTypeName,typ,"_",
-            perf.start.date,"/",perf.end.date,".png", sep = "")
+            perf.start.date,"_to_",perf.end.date,".png", sep = "")
     },
     content = function(file){
       png(file, width = 10, height = 5.5, units = 'in', res = 300) 
@@ -370,7 +355,7 @@ server <- function(input, output) {
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
-        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
+        typ <- ifelse(isTRUE(input$t1_only_checkbox),"Type1","AllTypes")
         
       }else{
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
@@ -383,7 +368,7 @@ server <- function(input, output) {
       
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
             plotTypeName,typ,"_",
-            perf.start.date,"/",perf.end.date,".png", sep = "")
+            perf.start.date,"_to_",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 
@@ -397,7 +382,7 @@ server <- function(input, output) {
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trust),'Prov_Name'],
                        ifelse(input$level == "Regional", provLookup[which(provLookup$Region == input$region),'Region'], 
                               provLookup[which(provLookup$Country == input$country),'Country']))
-        typ <- ifelse(input$t1_only_checkbox,"Type1","AllTypes")
+        typ <- ifelse(isTRUE(input$t1_only_checkbox),"Type1","AllTypes")
         
       }else{
         name <- ifelse(input$level == "Provider", provLookup[which(provLookup$Prov_Name == input$trustScot),'Prov_Name'],
@@ -410,7 +395,7 @@ server <- function(input, output) {
       
       paste(gsub(" ","_",gsub(" NHS |Foundation |Trust",'',name)),
             plotTypeName,typ,"_",
-            perf.start.date,"/",perf.end.date,".png", sep = "")
+            perf.start.date,"_to_",perf.end.date,".png", sep = "")
     },
     content = function(file) {
       png(file, width = 10, height = 5, units = 'in', res = 300) 

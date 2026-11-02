@@ -6,5 +6,5 @@
 rsconnect/
 data-raw/
 data-out/
-tests/test-data/
 logs/
+data/
