@@ -46,7 +46,10 @@ chart_performance <- function(
 }
 
 
-#' Chart of average daily attendances or admissions (C' chart)
+#' Chart of average daily attendances or admissions (U' chart)
+#'
+#' The U' chart plots each period's total divided by its number of days, so
+#' that months of different lengths, and weeks, are on the same scale.
 #'
 #' @inheritParams chart_performance
 #' @param volume "Attendances" or "Admissions"
@@ -61,12 +64,8 @@ chart_volume <- function(
   end_date = Sys.Date(),
   x_title = "Month"
 ) {
-  # The columns of `series` holding the total, and the daily average, of the
-  # chosen volume
+  # The column of `series` holding the chosen volume
   total_col <- c(Attendances = "Total_Att", Admissions = "Total_Adm")[[volume]]
-  daily_col <- c(Attendances = "daily_ave_att", Admissions = "daily_ave_adm")[[
-    volume
-  ]]
 
   name <- latest_name(series)
   series <- restrict_to_period(series, start_date, end_date)
@@ -76,11 +75,10 @@ chart_volume <- function(
     stop("No ", tolower(volume), " data for this selection")
   }
 
-  # The C' chart needs whole numbers, so the daily averages are rounded to
-  # the nearest whole number, as autospc would otherwise do with a warning.
-  # (A U' chart of the totals with n = days_in_period would plot the same
-  # daily averages without rounding.)
-  series$daily_average <- round(series[[daily_col]])
+  # autospc needs whole-number counts. Counts are fractional where weekly
+  # data have been apportioned to months (Scotland), and in a few source
+  # rows; round them, as autospc would otherwise do with a warning.
+  series$total <- round(series[[total_col]])
 
   per <- if (weekly) "week" else "month"
   title <- switch(
@@ -92,8 +90,9 @@ chart_volume <- function(
   autospc::autospc(
     series,
     x = Period,
-    y = daily_average,
-    chart_type = "C'",
+    y = total,
+    n = days_in_period,
+    chart_type = "U'",
     max_exclusions = 3L,
     title = title,
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),

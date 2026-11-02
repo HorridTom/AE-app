@@ -72,21 +72,31 @@ test_that("Volume charts are correct for Chelsea and Westminster", {
   expect_s3_class(attendances, "ggplot")
   expect_s3_class(admissions, "ggplot")
 
-  # Average daily attendances, April 2017 (30 days), rounded for the C' chart
-  expect_equal(chart_row(attendances, "2017-04-01")$series, round(23452 / 30))
-  expect_equal(chart_row(type1, "2017-04-01")$series, round(15957 / 30))
-  expect_equal(chart_row(admissions, "2017-04-01")$series, round(3375 / 30))
+  # U' charts: the plotted value is the total over the number of days
+  apr17 <- chart_row(attendances, "2017-04-01")
+  expect_equal(apr17$y, 23452)
+  expect_equal(apr17$n, 30)
+  expect_equal(apr17$series, 23452 / 30)
+  expect_equal(chart_row(type1, "2017-04-01")$series, 15957 / 30)
+  expect_equal(chart_row(admissions, "2017-04-01")$series, 3375 / 30)
+
+  # The limits vary with the number of days in the month: narrower for
+  # March (31 days) than February 2024 (29 days)
+  expect_lt(
+    chart_row(attendances, "2024-03-01")$ucl,
+    chart_row(attendances, "2024-02-01")$ucl
+  )
 
   apr24 <- chart_row(attendances, "2024-04-01")
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(887.0952, 1045.5526, 728.6379),
+    c(878.7422, 1022.5893, 734.8951),
     tolerance = 1e-5
   )
   apr24 <- chart_row(admissions, "2024-04-01")
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(85.72222, 95.0276, 76.41684),
+    c(85.75137, 94.95621, 76.54653),
     tolerance = 1e-5
   )
 })
