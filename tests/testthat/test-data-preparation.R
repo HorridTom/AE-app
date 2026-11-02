@@ -45,7 +45,9 @@ test_that("Menus list each country's organisations in order", {
   expect_false("A210H" %in% choices)
 })
 
-# Made-up providers: P1 has changed name twice; P2 and P3 have the same name
+# Made-up providers: P1 has changed name twice; P2 and P3 have the same name,
+# and P3 took over from P2; P4 and P5 have the same name but report at the same
+# time, so are different services
 renamed <- tibble::tribble(
   ~Prov_Code , ~Prov_Name       , ~Period      ,
   "P1"       , "First Name"     , "2016-01-01" ,
@@ -54,7 +56,10 @@ renamed <- tibble::tribble(
   "P1"       , "Current Name"   , "2016-04-01" ,
   "P1"       , "Current Name"   , "2016-05-01" ,
   "P2"       , "Walk In Centre" , "2016-01-01" ,
-  "P3"       , "Walk In Centre" , "2016-05-01"
+  "P3"       , "Walk In Centre" , "2016-05-01" ,
+  "P4"       , "Out Of Hours"   , "2016-01-01" ,
+  "P4"       , "Out Of Hours"   , "2016-02-01" ,
+  "P5"       , "Out Of Hours"   , "2016-02-01"
 ) |>
   mutate(
     Period = as.Date(Period),
@@ -71,6 +76,8 @@ test_that("Providers are listed under their latest name", {
     provider_choices(orgs, "England"),
     c(
       "Current Name" = "P1",
+      "Out Of Hours (P4)" = "P4",
+      "Out Of Hours (P5)" = "P5",
       "Walk In Centre (P2)" = "P2",
       "Walk In Centre (P3)" = "P3"
     )
@@ -88,4 +95,27 @@ test_that("A provider's earlier names are listed with their dates", {
     )
   )
   expect_equal(earlier_names_note(renamed, "P2"), "")
+})
+
+test_that("A change of code is linked both ways, but concurrent codes are not", {
+  orgs <- organisation_lookup(renamed)
+
+  from_p2 <- code_handovers(renamed, orgs, "P2")
+  expect_null(from_p2$previous)
+  expect_equal(from_p2[["next"]]$Prov_Code, "P3")
+  expect_equal(from_p2[["next"]]$First, as.Date("2016-05-01"))
+
+  from_p3 <- code_handovers(renamed, orgs, "P3")
+  expect_equal(from_p3$previous$Prov_Code, "P2")
+  expect_equal(from_p3$previous$Last, as.Date("2016-01-01"))
+  expect_null(from_p3[["next"]])
+
+  expect_equal(
+    code_handovers(renamed, orgs, "P4"),
+    list(previous = NULL, `next` = NULL)
+  )
+  expect_equal(
+    code_handovers(renamed, orgs, "P1"),
+    list(previous = NULL, `next` = NULL)
+  )
 })

@@ -22,11 +22,21 @@ app_server <- function(
       paste("NHS", input$country, "Provider Organisations")
     })
 
-    # A provider's earlier names, if it has had any (issue #32)
-    output$earlier_names <- renderText({
+    # A provider's earlier names, and links to the codes it was reported
+    # under before or after a change of code, if any (issue #32)
+    output$provider_notes <- renderUI({
       s <- selection()
       req(s$level == "Provider")
-      earlier_names_note(ae_data, s$code)
+      provider_notes(
+        earlier_names_note(ae_data, s$code),
+        code_handovers(ae_data, organisations, s$code)
+      )
+    })
+
+    # Following one of those links
+    observeEvent(input$switch_provider, {
+      menu <- if (input$country == "England") "trust" else "trustScot"
+      updateSelectInput(session, menu, selected = input$switch_provider)
     })
 
     selection <- reactive({
@@ -155,4 +165,50 @@ download_file_name <- function(selection, chart_name, start_date, end_date) {
     end_date,
     ".png"
   )
+}
+
+
+# The notes shown above a provider's charts: its earlier names, and links to
+# the codes it was reported under before or after a change of code
+provider_notes <- function(earlier_names, handovers) {
+  month <- function(date) format(date, "%B %Y")
+  link_to <- function(code) {
+    tags$a(
+      href = "#",
+      onclick = sprintf(
+        "Shiny.setInputValue('switch_provider', '%s', {priority: 'event'}); return false;",
+        code
+      ),
+      code
+    )
+  }
+
+  previous <- handovers$previous
+  following <- handovers[["next"]]
+  notes <- list(
+    if (nzchar(earlier_names)) earlier_names,
+    if (!is.null(previous)) {
+      HTML(paste0(
+        "Previously reported under code ",
+        link_to(previous$Prov_Code),
+        ", up to ",
+        month(previous$Last),
+        "."
+      ))
+    },
+    if (!is.null(following)) {
+      HTML(paste0(
+        "Reported under code ",
+        link_to(following$Prov_Code),
+        " from ",
+        month(following$First),
+        "."
+      ))
+    }
+  )
+  notes <- Filter(Negate(is.null), notes)
+  if (length(notes) == 0) {
+    return(NULL)
+  }
+  tagList(lapply(notes, p))
 }

@@ -45,7 +45,10 @@ understanding_tab_content <- function() {
     p(
       "Providers are listed under their most recent name. Where a provider's code has been used with other
       names in the past, these are shown above its charts. Where two providers have the same name, their
-      codes are shown after the name."
+      codes are shown after the name. Where a service has been reported under a new code (for example,
+      when a new provider took it over), the charts for each code are shown separately, with a link
+      from each to the other: the service may have changed at the same time, so the data before and
+      after are not combined."
     ),
     p("\n"),
     p(

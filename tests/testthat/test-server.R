@@ -100,3 +100,24 @@ test_that("Download file names describe the chart", {
     "Scotland_AttendPlot__2015-07-01_to_2026-11-02.png"
   )
 })
+
+test_that("Provider notes show earlier names and link to other codes", {
+  handover <- list(
+    previous = data.frame(
+      Prov_Code = "NDA55",
+      First = as.Date("2015-06-01"),
+      Last = as.Date("2017-03-01")
+    ),
+    `next` = NULL
+  )
+  html <- as.character(provider_notes(
+    "Previously: Old Name (June 2015).",
+    handover
+  ))
+  expect_match(html, "Previously: Old Name (June 2015).", fixed = TRUE)
+  expect_match(html, "Previously reported under code")
+  expect_match(html, "switch_provider&#39;, &#39;NDA55")
+  expect_match(html, "up to March 2017")
+
+  expect_null(provider_notes("", list(previous = NULL, `next` = NULL)))
+})

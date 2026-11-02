@@ -160,3 +160,43 @@ earlier_names_note <- function(ae_data, code) {
     "."
   )
 }
+
+
+# Providers whose code changed: other codes in the same country with the same
+# current name, whose data come entirely before (previous) or after (next)
+# this code's data. This is typically a service re-contracted to a new
+# provider under a new code. Codes with the same name whose data overlap in
+# time are different services, so are not linked.
+#
+# Returns a list with elements previous and next, each NULL or a one-row data
+# frame with columns Prov_Code, First and Last (first and last periods).
+code_handovers <- function(ae_data, organisations, code) {
+  this_org <- organisations[organisations$Prov_Code == code, ]
+  same_name <- organisations$Prov_Code[
+    organisations$Country == this_org$Country &
+      organisations$Prov_Name == this_org$Prov_Name &
+      organisations$Prov_Code != code
+  ]
+  none <- list(previous = NULL, `next` = NULL)
+  if (length(same_name) == 0) {
+    return(none)
+  }
+
+  periods <- ae_data |>
+    filter(Prov_Code %in% c(code, same_name)) |>
+    summarise(First = min(Period), Last = max(Period), .by = Prov_Code)
+  this_code <- periods[periods$Prov_Code == code, ]
+  others <- periods[periods$Prov_Code != code, ]
+
+  previous <- others |>
+    filter(Last < this_code$First) |>
+    slice_max(Last, n = 1, with_ties = FALSE)
+  following <- others |>
+    filter(First > this_code$Last) |>
+    slice_min(First, n = 1, with_ties = FALSE)
+
+  list(
+    previous = if (nrow(previous) > 0) previous,
+    `next` = if (nrow(following) > 0) following
+  )
+}
