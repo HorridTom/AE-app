@@ -77,7 +77,7 @@ app_sidebar <- function(organisations) {
       selectInput(
         "trust",
         "Choose Provider",
-        provider_names(organisations, "England")
+        provider_choices(organisations, "England")
       )
     ),
     conditionalPanel(
@@ -88,7 +88,7 @@ app_sidebar <- function(organisations) {
       selectInput(
         "trustScot",
         "Choose Provider",
-        provider_names(organisations, "Scotland")
+        provider_choices(organisations, "Scotland")
       )
     ),
     conditionalPanel(
@@ -135,6 +135,7 @@ analysis_tab <- function() {
   tagList(
     h1("Analysis of Accident and Emergency Attendance Data"),
     h4(textOutput("subtitle")),
+    uiOutput("provider_notes"),
     fluidRow(
       column(
         width = 12,

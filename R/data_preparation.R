@@ -78,19 +78,33 @@ standardise_scotland <- function(scotland) {
 }
 
 
-# One row per provider/hospital, with its region and country, taken from the
-# first row of data for it, sorted by name. Used to fill the menus and to look
-# up the code for the organisation chosen.
+# One row per provider/hospital, with its region and country, taken from its
+# latest row of data, so that it has its current name. Sorted by name. Used to
+# fill the menus and to look up the organisation chosen.
+#
+# Menu_Name is the name shown in the menu: the provider's name, followed by
+# its code where another provider in the same country has the same name (e.g.
+# a walk-in centre that has moved to a new code).
 organisation_lookup <- function(ae_data) {
   ae_data |>
+    arrange(desc(Period)) |>
     distinct(Prov_Code, .keep_all = TRUE) |>
     select(Prov_Code, Prov_Name, Reg_Code, Region, Nat_Code, Country) |>
-    arrange(Prov_Name)
+    arrange(Prov_Name, Prov_Code) |>
+    mutate(
+      Menu_Name = if (n() > 1) {
+        paste0(Prov_Name, " (", Prov_Code, ")")
+      } else {
+        Prov_Name
+      },
+      .by = c(Country, Prov_Name)
+    )
 }
 
-# Choices for the menus
-provider_names <- function(organisations, country) {
-  organisations$Prov_Name[organisations$Country == country]
+# Choices for the provider menu: the names shown, with the codes as values
+provider_choices <- function(organisations, country) {
+  in_country <- organisations[organisations$Country == country, ]
+  stats::setNames(in_country$Prov_Code, in_country$Menu_Name)
 }
 
 region_names <- function(organisations, country) {
@@ -101,13 +115,88 @@ country_names <- function(organisations) {
   levels(factor(organisations$Country))
 }
 
-# The code of the organisation with the given name, at the given level
+# The code of the region or board with the given name, or of the country
 organisation_code <- function(organisations, country, level, name = NULL) {
   in_country <- organisations[organisations$Country == country, ]
   switch(
     level,
-    Provider = in_country$Prov_Code[in_country$Prov_Name == name][1],
     Regional = in_country$Reg_Code[in_country$Region == name][1],
     National = in_country$Nat_Code[1]
+  )
+}
+
+# The current name of the provider with the given code
+provider_name <- function(organisations, code) {
+  organisations$Prov_Name[organisations$Prov_Code == code][1]
+}
+
+# The names a provider has had before its current one, with the first and
+# last period each was used: a data frame with columns Prov_Name, First and
+# Last, earliest first. No rows if the provider has only had one name.
+earlier_names <- function(ae_data, code) {
+  ae_data |>
+    filter(Prov_Code == code) |>
+    summarise(First = min(Period), Last = max(Period), .by = Prov_Name) |>
+    arrange(First) |>
+    filter(Last < max(Last))
+}
+
+# e.g. "Previously: 5 Boroughs Partnership NHS Foundation Trust (July 2015 to
+# March 2016)." "" if the provider has only had one name.
+earlier_names_note <- function(ae_data, code) {
+  names <- earlier_names(ae_data, code)
+  if (nrow(names) == 0) {
+    return("")
+  }
+  month <- function(date) format(date, "%B %Y")
+  periods <- ifelse(
+    names$First == names$Last,
+    month(names$First),
+    paste(month(names$First), "to", month(names$Last))
+  )
+  paste0(
+    "Previously: ",
+    paste0(names$Prov_Name, " (", periods, ")", collapse = "; "),
+    "."
+  )
+}
+
+
+# Providers whose code changed: other codes in the same country with the same
+# current name, whose data come entirely before (previous) or after (next)
+# this code's data. This is typically a service re-contracted to a new
+# provider under a new code. Codes with the same name whose data overlap in
+# time are different services, so are not linked.
+#
+# Returns a list with elements previous and next, each NULL or a one-row data
+# frame with columns Prov_Code, First and Last (first and last periods).
+code_handovers <- function(ae_data, organisations, code) {
+  this_org <- organisations[organisations$Prov_Code == code, ]
+  same_name <- organisations$Prov_Code[
+    organisations$Country == this_org$Country &
+      organisations$Prov_Name == this_org$Prov_Name &
+      organisations$Prov_Code != code
+  ]
+  none <- list(previous = NULL, `next` = NULL)
+  if (length(same_name) == 0) {
+    return(none)
+  }
+
+  periods <- ae_data |>
+    filter(Prov_Code %in% c(code, same_name)) |>
+    summarise(First = min(Period), Last = max(Period), .by = Prov_Code)
+  this_code <- periods[periods$Prov_Code == code, ]
+  others <- periods[periods$Prov_Code != code, ]
+
+  previous <- others |>
+    filter(Last < this_code$First) |>
+    slice_max(Last, n = 1, with_ties = FALSE)
+  following <- others |>
+    filter(First > this_code$Last) |>
+    slice_min(First, n = 1, with_ties = FALSE)
+
+  list(
+    previous = if (nrow(previous) > 0) previous,
+    `next` = if (nrow(following) > 0) following
   )
 }
