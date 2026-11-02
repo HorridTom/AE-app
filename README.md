@@ -19,24 +19,58 @@ data.
 More details on the methods used can be found in the “Understanding the
 analysis” tab of the app.
 
+## Data
+
+The app reads its data from the [AE-data](https://github.com/HorridTom/AE-data)
+repository, where a scheduled GitHub Action updates it every week using
+[nhsAEscraper](https://github.com/HorridTom/nhsAEscraper). (Until 2025 the data
+was held in a MySQL database on AWS.) The app reads the data once, when it
+starts, so a running copy picks up new data when it next restarts.
+
 ## Run the app locally
 
 You will need to install the following packages:
 
 ``` r
-install.packages(c('shiny','shinydashboard','tidyverse','stringr','scales','zoo','wktmo','testthat'))
-devtools::install_github('HorridTom/nhsAEscraper')
+install.packages(c("shiny", "shinydashboard", "shinyjs", "tidyverse", "scales",
+                   "zoo", "lubridate", "wktmo", "testthat", "remotes"))
+remotes::install_github("HorridTom/autospc")
 ```
 
-After cloning this repo, the app can then be run as usual with the
-command:
+After cloning this repo, run the app as usual with:
 
 ``` r
 shiny::runApp()
 ```
 
-Note that with the default settings the app requires a live internet
-connection, to download the data.
+This needs an internet connection to download the data. To use a local copy of
+the AE-data repository instead:
+
+``` r
+Sys.setenv(AE_DATA_SOURCE = "~/Rprojects/AE-data/data")
+shiny::runApp()
+```
+
+## Tests
+
+``` r
+testthat::test_dir("tests")
+```
+
+The test data in `tests/test-data` is made by `tests/make_test_data.R`.
+
+## Deploy
+
+The app is hosted on [shinyapps.io](https://www.shinyapps.io/) (account
+`clahrcnwl`). With the account connected in RStudio
+(`rsconnect::setAccountInfo()`), deploy with:
+
+``` r
+rsconnect::deployApp(appName = "ae-app", account = "clahrcnwl")
+```
+
+autospc must be installed from GitHub (as above), so that shinyapps.io can
+install the same version.
 
 ## Example analyses
 

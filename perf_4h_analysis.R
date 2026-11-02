@@ -9,8 +9,7 @@ library(wktmo)
 make_perf_series <- function(df, code = "RQM", measure = "All", level, 
                              weeklyOrMonthly = "Monthly", onlyProvsReporting = F) {
   
-  df <- regional_analysis(df, level, onlyProvsReporting)
-  df <- filter(df, Code == code)
+  df <- regional_analysis(df, level, onlyProvsReporting, code = code)
   
   # Make new variables
     df <- df %>% mutate(Att_Typ1_NotBr = Att_Typ1 - Att_Typ1_Br,
@@ -49,14 +48,14 @@ make_perf_series <- function(df, code = "RQM", measure = "All", level,
     #two new cols: 
     #if National code - i.e. Scotland $ weekly, return number of days - i.e. 7
     #else return number of days in a months
-    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(df$Month_Start))) %>%
+    arrange(Month_Start) %>% mutate(days_in_period = ifelse(Nat_Code == "S" & weeklyOrMonthly == "weekly",7, days_in_month(Month_Start))) %>%
     mutate(daily_ave_att = Total_Att/days_in_period) %>%
     mutate(daily_ave_adm = Total_Adm/days_in_period)
   
 }
 
 
-regional_analysis <- function(df, level, onlyProvsReporting){
+regional_analysis <- function(df, level, onlyProvsReporting, code = NULL){
   
   if(level == "National"){
     Name <- "Country"
@@ -74,6 +73,12 @@ regional_analysis <- function(df, level, onlyProvsReporting){
   
   df <- df %>%
       mutate(Name = !!Name, Code = !!Code)
+
+  # Summarising only the organisation needed is much faster than summarising
+  # them all
+  if(!is.null(code)) {
+    df <- df %>% filter(Code == code)
+  }
   
   if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
     provs_not_reporting <- df %>% filter(is.na(Att_All_Br)) %>% distinct(Prov_Code) %>% pull(Prov_Code)
@@ -167,7 +172,7 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
   df <- filter(df, !(is.na(Within_4h))) 
   
   # if no pr_name passed, lookup full name of provider
-  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = !!date.col) %>% pull(Name)}
+  if (is.null(pr_name)) {pr_name <- df %>% slice_max(Month_Start, n = 1, with_ties = FALSE) %>% pull(Name)}
   
   # convert arguments to dates
   st.dt <- as.Date(start.date, tz = "Europe/London")
@@ -195,21 +200,31 @@ plot_performance <- function(df, code = "RBZ", date.col = 'Month_Start',
     levelTitle <- ""
   }
 
-  if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
+  # Only NHS England has providers that stopped reporting (see the
+  # Understanding the analysis tab)
+  if(df$Nat_Code[1] != "E" | level == "Provider"){
+    reportingTitle <- ""
+  }else if(onlyProvsReporting == T){
     reportingTitle <- "\nIncludes only providers that are still reporting"
-  }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
+  }else if(onlyProvsReporting == F){
     reportingTitle <- "\nIncludes providers that are no longer reporting"
   }else{
     reportingTitle <- ""
   }
   
   if(plot.chart == TRUE) {
-    
-    autospc::plot_auto_SPC(df, 
-                           x = Month_Start, 
-                           y = Within_4h, 
-                           n = Total_Att, 
-                           chartType = "P'",
+
+    # autospc needs whole-number counts. Counts are fractional where weekly
+    # data have been apportioned to months (Scotland), and in a few source
+    # rows; round them, as autospc would otherwise do with a warning.
+    df <- df %>% mutate(Within_4h = round(Within_4h), Total_Att = round(Total_Att))
+
+    autospc::autospc(df,
+                     x = Month_Start,
+                     y = Within_4h,
+                     n = Total_Att,
+                     chart_type = "P'",
+                     max_exclusions = 3L,
                            title = cht_title,
                            subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                            override_x_title = x_title,
@@ -249,7 +264,7 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
                          weeklyOrMonthly = weeklyOrMonthly, onlyProvsReporting = FALSE)
   
   # if no pr_name passed, lookup full name of provider
-  if (is.null(pr_name)) {pr_name <- df %>% top_n(1, wt = Performance) %>% pull(Name)}
+  if (is.null(pr_name)) {pr_name <- df %>% slice_max(Month_Start, n = 1, with_ties = FALSE) %>% pull(Name)}
   
   # convert arguments to dates and round to nearest quarter
   st.dt <- as.Date(start.date, tz = "Europe/London")
@@ -261,6 +276,12 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
   # restrict to the period specified
   df <- df %>% filter(Month_Start >= st.dt, Month_Start <= ed.dt)
   if(nrow(df)==0) {stop("No data for provider period specified")}
+
+  # e.g. admissions for a provider that has none: nothing to chart
+  volume_col <- ifelse(attOrAdm == "Attendances", "Total_Att", "Total_Adm")
+  if(all(is.na(df[[volume_col]]) | df[[volume_col]] == 0)) {
+    stop("No ", tolower(attOrAdm), " data for this selection")
+  }
 
   # for subtitle 
   if(df$Nat_Code[1] == "E"){
@@ -277,21 +298,33 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
     levelTitle <- ""
   }
   
-  if(onlyProvsReporting == T & (level == "National" | level == "Regional")){
+  # Only NHS England has providers that stopped reporting (see the
+  # Understanding the analysis tab)
+  if(df$Nat_Code[1] != "E" | level == "Provider"){
+    reportingTitle <- ""
+  }else if(onlyProvsReporting == T){
     reportingTitle <- "\nIncludes only providers that are still reporting"
-  }else if(onlyProvsReporting == F & (level == "National" | level == "Regional")){
+  }else if(onlyProvsReporting == F){
     reportingTitle <- "\nIncludes providers that are no longer reporting"
   }else{
     reportingTitle <- ""
   }
   
   if(plot.chart == TRUE) {
-    
+
+    # The C' chart needs whole numbers, so the daily averages are rounded to
+    # the nearest whole number, as autospc would otherwise do with a warning.
+    # (A U' chart of Total_Att with n = days_in_period would plot the same
+    # daily averages without rounding.)
+    df <- df %>% mutate(daily_ave_att = round(daily_ave_att),
+                        daily_ave_adm = round(daily_ave_adm))
+
     if(attOrAdm == "Attendances"){
-      autospc::plot_auto_SPC(df, 
-                             x = Month_Start,
-                             y = daily_ave_att,
-                             chartType = "C'",
+      autospc::autospc(df,
+                       x = Month_Start,
+                       y = daily_ave_att,
+                       chart_type = "C'",
+                       max_exclusions = 3L,
                              title = cht_title,
                              subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                              override_x_title = x_title,
@@ -305,10 +338,11 @@ plot_volume <- function(df, code = "RBZ", date.col = 'Month_Start',
       #need caption = "*Shewhart chart rules apply (see Understanding the Analysis tab for more detail) \nRule 1: Any month outside the control limits 
       #\nRule 2: Eight or more consecutive months all above, or all below, the centre line"
     }else{
-      autospc::plot_auto_SPC(df, 
-                             x = Month_Start,
-                             y = daily_ave_adm,
-                             chartType = "C'",
+      autospc::autospc(df,
+                       x = Month_Start,
+                       y = daily_ave_adm,
+                       chart_type = "C'",
+                       max_exclusions = 3L,
                              title = cht_title,
                              subtitle = paste0(levelTitle, pr_name, typeTitle, reportingTitle),
                              override_x_title = x_title,
