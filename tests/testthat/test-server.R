@@ -24,10 +24,14 @@ test_that("The selection follows the inputs", {
     set_inputs(
       session,
       level = "Provider",
-      trust = "Chelsea And Westminster Hospital NHS Foundation Trust",
+      trust = "RQM",
       t1_only_checkbox = TRUE
     )
     expect_equal(selection()$code, "RQM")
+    expect_equal(
+      selection()$name,
+      "Chelsea And Westminster Hospital NHS Foundation Trust"
+    )
     expect_equal(selection()$measure, "Typ1")
   })
 })

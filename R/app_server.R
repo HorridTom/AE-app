@@ -22,6 +22,13 @@ app_server <- function(
       paste("NHS", input$country, "Provider Organisations")
     })
 
+    # A provider's earlier names, if it has had any (issue #32)
+    output$earlier_names <- renderText({
+      s <- selection()
+      req(s$level == "Provider")
+      earlier_names_note(ae_data, s$code)
+    })
+
     selection <- reactive({
       req(input$country, input$level)
       make_selection(input, organisations)
@@ -99,19 +106,26 @@ make_selection <- function(input, organisations) {
   level <- input$level
   england <- country == "England"
 
-  name <- switch(
-    level,
-    Provider = if (england) input$trust else input$trustScot,
-    Regional = if (england) input$region else input$regionScot,
-    National = country
-  )
-  req(name)
+  if (level == "Provider") {
+    # The provider menu's values are provider codes
+    code <- if (england) input$trust else input$trustScot
+    req(code)
+    name <- provider_name(organisations, code)
+  } else {
+    name <- if (level == "Regional") {
+      if (england) input$region else input$regionScot
+    } else {
+      country
+    }
+    req(name)
+    code <- organisation_code(organisations, country, level, name)
+  }
 
   list(
     country = country,
     level = level,
     name = name,
-    code = organisation_code(organisations, country, level, name),
+    code = code,
     measure = if (england && isTRUE(input$t1_only_checkbox)) "Typ1" else "All",
     weekly = !england && isTRUE(input$weekly_checkbox),
     only_reporting = england && isTRUE(input$still_reporting_checkbox)
