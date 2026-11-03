@@ -1,7 +1,13 @@
-app_ui <- function(organisations) {
+# start_date and end_date: the dates analysed, and the widest range the user
+# can choose to show
+app_ui <- function(
+  organisations,
+  start_date = "2015-07-01",
+  end_date = Sys.Date()
+) {
   dashboardPage(
     dashboardHeader(title = "A&E Tracker", titleWidth = 300),
-    app_sidebar(organisations),
+    app_sidebar(organisations, start_date, end_date),
     dashboardBody(
       tabItems(
         tabItem(tabName = "analysis", analysis_tab()),
@@ -16,7 +22,7 @@ app_ui <- function(organisations) {
 js_england <- "input.country == 'England'"
 js_scotland <- "input.country == 'Scotland'"
 
-app_sidebar <- function(organisations) {
+app_sidebar <- function(organisations, start_date, end_date) {
   in_analysis <- function(condition) {
     paste("input.tabs === 'analysis' &", condition)
   }
@@ -108,6 +114,17 @@ app_sidebar <- function(organisations) {
         "regionScot",
         "Choose Board",
         region_names(organisations, "Scotland")
+      )
+    ),
+    conditionalPanel(
+      condition = "input.tabs === 'analysis'",
+      sliderInput(
+        "dates",
+        "Show dates",
+        min = as.Date(start_date),
+        max = as.Date(end_date),
+        value = c(as.Date(start_date), as.Date(end_date)),
+        timeFormat = "%b %Y"
       )
     ),
     sidebarMenu(

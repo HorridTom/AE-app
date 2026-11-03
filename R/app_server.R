@@ -91,32 +91,56 @@ app_server <- function(
       )
     }
 
+    # The dates the user has chosen to show. The charts are analysed on all
+    # the data from start_date to end_date and then zoomed to these dates, so
+    # that the limits at any point do not depend on the dates shown.
+    shown_dates <- reactive({
+      req(input$dates)
+      as.Date(input$dates)
+    })
+
+    show_chosen_dates <- function(chart) {
+      reactive({
+        full_chart <- chart()
+        if (inherits(full_chart, "condition")) {
+          return(full_chart)
+        }
+        tryCatch(
+          show_dates(full_chart, shown_dates()[1], shown_dates()[2]),
+          no_chart = function(e) e
+        )
+      })
+    }
+
     file_name <- function(chart_name) {
       reactive(download_file_name(
         selection(),
         chart_name,
-        start_date,
-        end_date
+        shown_dates()[1],
+        shown_dates()[2]
       ))
     }
 
     chart_server(
       "performance",
-      reactive(try_chart(chart_performance)),
+      show_chosen_dates(reactive(try_chart(chart_performance))),
       file_name("PerfPlot"),
       height = 5.5
     )
     chart_server(
       "attendances",
-      reactive(try_chart(chart_volume, volume = "Attendances")),
+      show_chosen_dates(reactive(try_chart(
+        chart_volume,
+        volume = "Attendances"
+      ))),
       file_name("AttendPlot")
     )
     chart_server(
       "admissions",
-      reactive({
+      show_chosen_dates(reactive({
         req(input$country == "England")
         try_chart(chart_volume, volume = "Admissions")
-      }),
+      })),
       file_name("AdmissPlot")
     )
   }
