@@ -50,8 +50,10 @@ chart_performance <- function(
     annotation_size = 4,
     upper_annotation_sf = 1.08,
     lower_annotation_sf = 0.92,
-    flip_labels = TRUE
-  )
+    flip_labels = TRUE,
+    use_caption = FALSE
+  ) |>
+    fit_y_axis(upper_annotation_sf = 1.08, lower_annotation_sf = 0.92)
 }
 
 
@@ -117,8 +119,14 @@ chart_volume <- function(
     lower_annotation_sf = 0.9,
     flip_labels = FALSE,
     align_labels = TRUE,
-    annotation_arrows = TRUE
-  )
+    annotation_arrows = TRUE,
+    use_caption = FALSE
+  ) |>
+    fit_y_axis(
+      upper_annotation_sf = 1.1,
+      lower_annotation_sf = 0.9,
+      from_zero = TRUE
+    )
 }
 
 
@@ -216,15 +224,15 @@ no_chart <- function(...) {
   ))
 }
 
-# e.g. "Region:London\nAll department types\nIncludes only providers that are
+# e.g. "Region: London\nAll department types\nIncludes only providers that are
 # still reporting"
 chart_subtitle <- function(series, name, level, measure, only_reporting) {
   england <- series$Nat_Code[1] == "E"
 
   level_title <- switch(
     level,
-    National = "Country:",
-    Regional = if (england) "Region:" else "Board:",
+    National = "Country: ",
+    Regional = if (england) "Region: " else "Board: ",
     Provider = ""
   )
 
@@ -286,9 +294,12 @@ show_dates <- function(chart, from, to) {
   suppressMessages(
     chart +
       ggplot2::scale_x_date(
-        labels = scales::date_format("%Y-%m-%d"),
-        breaks = scales::breaks_pretty()(c(from, to)),
+        labels = scales::label_date_short(),
+        breaks = scales::breaks_pretty(n = 8)(c(from, to)),
         limits = full_range
+      ) +
+      ggplot2::theme(
+        axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5)
       ) +
       ggplot2::coord_cartesian(
         xlim = c(from - half_period, to + half_period),
@@ -296,4 +307,127 @@ show_dates <- function(chart, from, to) {
         expand = FALSE
       )
   )
+}
+
+
+# Fit the vertical axis to all the chart's data: its points, its control
+# limits, and room for the centre line labels, which autospc places at the
+# limits multiplied by upper_annotation_sf and lower_annotation_sf. With
+# from_zero = TRUE (counts), the axis always starts at zero. Otherwise it
+# starts at zero only where the data come close to it, and draw_chart() marks
+# the axis with a break where it does not.
+fit_y_axis <- function(
+  chart,
+  upper_annotation_sf,
+  lower_annotation_sf,
+  from_zero = FALSE
+) {
+  d <- as.data.frame(chart)
+  low <- min(c(d$series, d$lcl * lower_annotation_sf), na.rm = TRUE)
+  high <- max(c(d$series, d$ucl * upper_annotation_sf), na.rm = TRUE)
+  padding <- 0.05 * (high - low)
+  low <- low - padding
+  high <- high + padding
+  if (from_zero || low < 0.2 * high) {
+    low <- 0
+  }
+  suppressMessages(chart + ggplot2::coord_cartesian(ylim = c(low, high)))
+}
+
+
+#' Draw a chart
+#'
+#' Draws a chart from chart_performance() or chart_volume(), marking the
+#' vertical axis with a break where it does not start at zero.
+#'
+#' @param chart the chart, usually after show_dates()
+#' @param caption optional caption, e.g. from chart_caption()
+draw_chart <- function(chart, caption = NULL) {
+  if (!is.null(caption)) {
+    chart <- chart +
+      ggplot2::labs(caption = caption) +
+      ggplot2::theme(
+        plot.caption = ggplot2::element_text(hjust = 0, size = 9)
+      )
+  }
+  table <- ggplot2::ggplotGrob(chart)
+  if (chart$coordinates$limits$y[1] > 0) {
+    panel <- table$layout[table$layout$name == "panel", ]
+    table <- gtable::gtable_add_grob(
+      table,
+      y_axis_break(),
+      t = panel$t,
+      l = panel$l,
+      clip = "off",
+      z = Inf,
+      name = "y_axis_break"
+    )
+  }
+  grid::grid.newpage()
+  grid::grid.draw(table)
+}
+
+# A break mark on the vertical axis, near its foot: a short gap in the axis,
+# between two slanted lines
+y_axis_break <- function(height = grid::unit(4, "mm")) {
+  half_width <- grid::unit(1.8, "mm")
+  half_gap <- grid::unit(0.6, "mm")
+  slant <- grid::unit(0.8, "mm")
+  line <- function(offset) {
+    grid::segmentsGrob(
+      x0 = -half_width,
+      x1 = half_width,
+      y0 = height + offset - slant,
+      y1 = height + offset + slant,
+      gp = grid::gpar(col = "grey40", lwd = 1.2)
+    )
+  }
+  grid::grobTree(
+    grid::rectGrob(
+      x = grid::unit(0, "npc"),
+      y = height,
+      width = half_width,
+      height = 2 * half_gap,
+      gp = grid::gpar(fill = "white", col = NA)
+    ),
+    line(-half_gap),
+    line(half_gap)
+  )
+}
+
+
+#' Caption for a downloaded chart
+#'
+#' So that a downloaded chart can be understood on its own: the chart type,
+#' the rules, the data source with its licence, and when it was downloaded.
+#'
+#' @param chart_type "P'" or "U'"
+#' @param country "England" or "Scotland"
+#' @param date the date of the download
+chart_caption <- function(chart_type, country, date = Sys.Date()) {
+  source <- switch(
+    country,
+    England = "NHS England, A&E Attendances and Emergency Admissions",
+    Scotland = "Public Health Scotland, Weekly A&E Activity and Waiting Times"
+  )
+  lines <- c(
+    paste0(
+      chart_type,
+      " Shewhart chart. Rule 1: any point outside the control limits. ",
+      "Rule 2: eight or more consecutive points all above, or all below, ",
+      "the centre line."
+    ),
+    paste0(
+      "Source: ",
+      source,
+      ". Contains public sector information licensed under the Open ",
+      "Government Licence v3.0."
+    ),
+    paste0(
+      "A&E Tracker, https://clahrcnwl.shinyapps.io/ae-app/, ",
+      format(as.Date(date), "%d %B %Y"),
+      "."
+    )
+  )
+  paste(strwrap(lines, width = 120), collapse = "\n")
 }

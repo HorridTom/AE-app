@@ -12,22 +12,23 @@ chart_download_ui <- function(id, label) {
 #' @param chart a reactive returning the chart, or, if there is none, a
 #'   condition whose message says why
 #' @param filename a reactive returning the download's file name
+#' @param caption a reactive returning the caption for the download
 #' @param height height of the downloaded image, in inches
-chart_server <- function(id, chart, filename, height = 5) {
+chart_server <- function(id, chart, filename, caption, height = 6) {
   moduleServer(id, function(input, output, session) {
     output$plot <- renderPlot({
       if (inherits(chart(), "condition")) {
         validate(conditionMessage(chart()))
       }
-      print(chart())
+      draw_chart(chart())
     })
 
     output$download <- downloadHandler(
       filename = function() filename(),
       content = function(file) {
         req(!inherits(chart(), "condition"))
-        png(file, width = 10, height = height, units = "in", res = 300)
-        print(chart())
+        png(file, width = 9, height = height, units = "in", res = 300)
+        draw_chart(chart(), caption = caption())
         dev.off()
       }
     )
