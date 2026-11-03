@@ -2,7 +2,8 @@
 # separately in the UI, so there are two UI functions.
 
 chart_plot_ui <- function(id) {
-  plotOutput(NS(id, "plot"))
+  # The height is set in chart_server(), to suit the width
+  plotOutput(NS(id, "plot"), height = "auto")
 }
 
 chart_download_ui <- function(id, label) {
@@ -16,12 +17,22 @@ chart_download_ui <- function(id, label) {
 #' @param height height of the downloaded image, in inches
 chart_server <- function(id, chart, filename, caption, height = 6) {
   moduleServer(id, function(input, output, session) {
-    output$plot <- renderPlot({
-      if (inherits(chart(), "condition")) {
-        validate(conditionMessage(chart()))
+    # The width of the plot on the user's screen, in pixels
+    plot_width <- function() {
+      session$clientData[[paste0("output_", session$ns("plot"), "_width")]]
+    }
+
+    output$plot <- renderPlot(
+      {
+        if (inherits(chart(), "condition")) {
+          validate(conditionMessage(chart()))
+        }
+        draw_chart(fit_to_width(chart(), plot_width()))
+      },
+      height = function() {
+        if (is_narrow(plot_width())) 560 else 400
       }
-      draw_chart(chart())
-    })
+    )
 
     output$download <- downloadHandler(
       filename = function() filename(),

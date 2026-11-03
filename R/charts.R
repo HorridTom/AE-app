@@ -431,3 +431,62 @@ chart_caption <- function(chart_type, country, date = Sys.Date()) {
   )
   paste(strwrap(lines, width = 120), collapse = "\n")
 }
+
+
+# Charts narrower than this, in pixels (e.g. on a phone), are laid out for a
+# small screen by fit_to_width()
+narrow_width <- 700
+
+is_narrow <- function(width) {
+  !is.null(width) && width < narrow_width
+}
+
+#' Lay a chart out for the width it is shown at
+#'
+#' On a narrow screen: the legend goes below the chart, titles wrap, text is
+#' a little smaller, and the horizontal axis has fewer labels. Wider charts
+#' are unchanged. Only the layout changes, not the analysis.
+#'
+#' @param chart a chart, after show_dates()
+#' @param width the width it is shown at, in pixels
+fit_to_width <- function(chart, width) {
+  if (!is_narrow(width)) {
+    return(chart)
+  }
+  characters <- floor(width / 11)
+  wrap <- function(text) {
+    if (is.null(text)) {
+      return(NULL)
+    }
+    lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
+    paste(unlist(lapply(lines, strwrap, width = characters)), collapse = "\n")
+  }
+  shown <- as.Date(chart$coordinates$limits$x)
+  full_range <- as.Date(chart$scales$get_scales("x")$limits)
+
+  suppressMessages(
+    chart +
+      ggplot2::labs(
+        title = wrap(chart$labels$title),
+        subtitle = wrap(chart$labels$subtitle)
+      ) +
+      ggplot2::scale_x_date(
+        labels = scales::label_date_short(),
+        breaks = scales::breaks_pretty(n = max(3, floor(width / 90)))(shown),
+        limits = full_range
+      ) +
+      ggplot2::guides(colour = ggplot2::guide_legend(nrow = 2)) +
+      ggplot2::theme(
+        legend.position = "bottom",
+        legend.box = "vertical",
+        legend.title.position = "top",
+        legend.margin = ggplot2::margin(0, 0, 0, 0),
+        plot.title = ggplot2::element_text(size = 15),
+        plot.subtitle = ggplot2::element_text(size = 11),
+        axis.title = ggplot2::element_text(size = 11),
+        axis.text = ggplot2::element_text(size = 10),
+        legend.title = ggplot2::element_text(size = 10),
+        legend.text = ggplot2::element_text(size = 9)
+      )
+  )
+}
