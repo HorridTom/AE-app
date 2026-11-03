@@ -1,5 +1,12 @@
 # Shewhart charts of a series made by make_series(), drawn with autospc.
 
+# The fewest periods used to calculate a centre line and limits: two years of
+# monthly data, so that the limits cover the whole seasonal cycle, or
+# autospc's default of 21 for weekly data.
+period_min <- function(weekly) {
+  if (weekly) 21L else 24L
+}
+
 #' Chart of the percentage of attendances within 4 hours (P' chart)
 #'
 #' @param series a data frame from make_series()
@@ -43,6 +50,7 @@ chart_performance <- function(
     n = Total_Att,
     chart_type = "P'",
     max_exclusions = 3L,
+    period_min = period_min(weekly),
     title = "Percentage A&E attendances\nwith time in department < 4h",
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
     override_x_title = x_title,
@@ -110,6 +118,7 @@ chart_volume <- function(
     n = days_in_period,
     chart_type = "U'",
     max_exclusions = 3L,
+    period_min = period_min(weekly),
     title = title,
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
     override_x_title = x_title,
