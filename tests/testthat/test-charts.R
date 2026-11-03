@@ -289,3 +289,21 @@ test_that("Charts draw, with or without an axis break and a caption", {
   ))
   dev.off()
 })
+
+test_that("Charts are laid out for narrow screens without changing the analysis", {
+  chart <- show_dates(perf_chart("All"), "2015-07-01", "2026-09-30")
+
+  # Wide: unchanged
+  expect_identical(fit_to_width(chart, 1000), chart)
+  expect_identical(fit_to_width(chart, NULL), chart)
+
+  # Narrow: legend below, title and subtitle wrapped
+  narrow <- fit_to_width(chart, 390)
+  expect_equal(narrow$theme$legend.position, "bottom")
+  expect_match(narrow$labels$subtitle, "\n")
+  expect_lt(
+    max(nchar(strsplit(narrow$labels$subtitle, "\n")[[1]])),
+    max(nchar(strsplit(chart$labels$subtitle, "\n")[[1]]))
+  )
+  expect_equal(as.data.frame(narrow), as.data.frame(chart))
+})

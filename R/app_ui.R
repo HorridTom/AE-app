@@ -29,7 +29,15 @@ app_sidebar <- function(organisations, start_date, end_date) {
   }
 
   dashboardSidebar(
-    tags$style(".left-side, .main-sidebar {padding-top: 50px}"),
+    tags$style(HTML(
+      ".left-side, .main-sidebar {padding-top: 50px}",
+      # On small screens the header is two rows high, and the main heading
+      # is smaller
+      "@media (max-width: 767px) {",
+      "  .left-side, .main-sidebar {padding-top: 100px}",
+      "  .content-wrapper h1 {font-size: 24px}",
+      "}"
+    )),
     width = 300,
     tags$a(
       href = "http://clahrc-northwestlondon.nihr.ac.uk/",
