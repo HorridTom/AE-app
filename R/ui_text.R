@@ -108,6 +108,24 @@ understanding_tab_content <- function() {
       indicates that in order to achieve improvements, there is no point in focussing on individual months' highs
       and lows. The system needs to be locally diagnosed, and improvments implemented based on the results."
     ),
+    h3("How the centre line and control limits are set"),
+    p(
+      "The centre line and control limits are calculated from the data using
+      the Stable Shift Algorithm. Where the measure shifts to a new level,
+      shown by eight or more consecutive months/weeks on one side of the
+      centre line, the algorithm calculates a new centre line and limits from
+      the data after the shift. It only does so where the shift is sustained:
+      there must be enough data after the shift to calculate the new limits,
+      and the data must not then shift back towards the earlier level. Limits
+      are calculated from at least 24 months of data, so that they cover
+      seasonal variation (or 21 weeks, for weekly analysis). This means the charts show changes that have
+      lasted, rather than short-lived ones, and that the limits are set the
+      same way for every organisation."
+    ),
+    p(
+      "Because the limits are calculated from all the data available, changing
+      the dates shown does not change the centre line or the limits."
+    ),
     h2("Resources"),
     p("An introduction to control charts in healthcare:"),
     a(
@@ -128,6 +146,26 @@ understanding_tab_content <- function() {
     a(
       "Prime charts publication",
       href = "http://dx.doi.org/10.1136/qshc.2006.017830"
+    ),
+    br(),
+    p(
+      "The Stable Shift Algorithm, used to set the centre line and control
+      limits, is described here:"
+    ),
+    a(
+      "Woodcock T, O'Connor I, Bell D. Re-establishing control limits in
+      statistical process control analyses: the stable shift algorithm.
+      BMJ Quality & Safety",
+      href = "https://doi.org/10.1136/bmjqs-2025-019263"
+    ),
+    br(),
+    p(
+      "The analysis is carried out with autospc, an R package that implements
+      the Stable Shift Algorithm:"
+    ),
+    a(
+      "autospc website",
+      href = "https://horridtom.github.io/autospc/"
     )
   )
 }

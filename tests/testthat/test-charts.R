@@ -1,7 +1,7 @@
 # The control limits below are regression values: they are what autospc
-# 0.2.0.9002 gives, and check that the charts don't change unintentionally.
-# If a new version of autospc changes them on purpose, check the new charts
-# and update the values.
+# 0.2.0.9002 gives (with period_min = 24 for monthly data), and check that the
+# charts don't change unintentionally. If a new version of autospc changes them
+# on purpose, check the new charts and update the values.
 
 chart_row <- function(chart, month) {
   d <- as.data.frame(chart)
@@ -47,19 +47,19 @@ test_that("Performance chart is correct for Chelsea and Westminster", {
   apr24 <- chart_row(all_types, "2024-04-01")
   expect_equal(
     c(apr17$cl, apr17$ucl, apr17$lcl),
-    c(94.39386, 96.20126, 92.58646),
+    c(94.29129, 97.07303, 91.50955),
     tolerance = 1e-5
   )
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(79.43409, 84.04628, 74.82190),
+    c(79.21800, 83.72751, 74.70848),
     tolerance = 1e-5
   )
 
   apr17 <- chart_row(type1, "2017-04-01")
   expect_equal(
     c(apr17$cl, apr17$ucl, apr17$lcl),
-    c(92.44618, 95.59137, 89.30099),
+    c(92.25525, 96.35028, 88.16021),
     tolerance = 1e-5
   )
 })
@@ -90,13 +90,13 @@ test_that("Volume charts are correct for Chelsea and Westminster", {
   apr24 <- chart_row(attendances, "2024-04-01")
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(878.7422, 1022.5893, 734.8951),
+    c(882.9029, 1040.0694, 725.7363),
     tolerance = 1e-5
   )
   apr24 <- chart_row(admissions, "2024-04-01")
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(85.75137, 94.95621, 76.54653),
+    c(85.43036, 94.03305, 76.82767),
     tolerance = 1e-5
   )
 })
@@ -306,4 +306,16 @@ test_that("Charts are laid out for narrow screens without changing the analysis"
     max(nchar(strsplit(chart$labels$subtitle, "\n")[[1]]))
   )
   expect_equal(as.data.frame(narrow), as.data.frame(chart))
+})
+
+test_that("Limits are calculated from 24 months, or 21 weeks", {
+  calculation_points <- function(chart) {
+    d <- dplyr::distinct(as.data.frame(chart), x, .keep_all = TRUE)
+    sum(d$period_type == "calculation" & d$period_start == min(d$period_start))
+  }
+  monthly <- chart_performance(rqm("All"), "Provider")
+  expect_equal(calculation_points(monthly), 24)
+  s <- make_series(ae_data_test, "Regional", "S08000031", weekly = TRUE)
+  weekly <- chart_performance(s, "Regional", weekly = TRUE, x_title = "Week")
+  expect_equal(calculation_points(weekly), 21)
 })
