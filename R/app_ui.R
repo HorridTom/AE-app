@@ -135,7 +135,7 @@ analysis_tab <- function() {
   tagList(
     h1("Analysis of Accident and Emergency Attendance Data"),
     h4(textOutput("subtitle")),
-    uiOutput("provider_notes"),
+    uiOutput("chart_notes"),
     fluidRow(
       column(
         width = 12,

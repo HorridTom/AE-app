@@ -15,7 +15,8 @@
 #' @return A data frame with one row per period and columns Code, Name,
 #'   Nat_Code, Period, Within_4h, Greater_4h, Total_Att, Total_Adm,
 #'   Performance (proportion within 4 hours), days_in_period, daily_ave_att and
-#'   daily_ave_adm.
+#'   daily_ave_adm, and Data_End: the last period of the data (for Scotland,
+#'   the end of the last week, even where weeks are apportioned to months).
 make_series <- function(
   ae_data,
   level,
@@ -54,6 +55,8 @@ make_series <- function(
   }
 
   weekly <- scotland && weekly
+  # The end of the data, before any weeks are apportioned to months
+  data_end <- max(as.Date(series$Period))
   if (scotland && !weekly) {
     series <- weekly_to_monthly(series)
   }
@@ -61,7 +64,8 @@ make_series <- function(
   series |>
     mutate(
       Performance = Within_4h / Total_Att,
-      Period = as.Date(Period, tz = "Europe/London")
+      Period = as.Date(Period, tz = "Europe/London"),
+      Data_End = data_end
     ) |>
     arrange(Period) |>
     mutate(

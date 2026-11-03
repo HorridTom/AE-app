@@ -22,15 +22,25 @@ app_server <- function(
       paste("NHS", input$country, "Provider Organisations")
     })
 
-    # A provider's earlier names, and links to the codes it was reported
-    # under before or after a change of code, if any (issue #32)
-    output$provider_notes <- renderUI({
+    # Notes shown above the charts: a provider's earlier names, and links to
+    # the codes it was reported under before or after a change of code (issue
+    # #32); and why a performance chart has no control limits, where every
+    # attendance was within 4 hours
+    output$chart_notes <- renderUI({
       s <- selection()
-      req(s$level == "Provider")
-      provider_notes(
-        earlier_names_note(ae_data, s$code),
-        code_handovers(ae_data, organisations, s$code)
+      notes <- list(
+        if (s$level == "Provider") {
+          provider_notes(
+            earlier_names_note(ae_data, s$code),
+            code_handovers(ae_data, organisations, s$code)
+          )
+        },
+        note_paragraph(tryCatch(
+          all_within_4h_note(series(), s$weekly, start_date, end_date),
+          error = function(e) ""
+        ))
       )
+      tagList(Filter(Negate(is.null), notes))
     })
 
     # Following one of those links
@@ -56,9 +66,9 @@ app_server <- function(
       )
     })
 
-    # NULL if the chart can't be drawn, e.g. no data for the selection. A
-    # req() that isn't met (e.g. while the inputs are first set up) still
-    # stops the chart quietly.
+    # The chart, or if it can't be drawn, a condition whose message explains
+    # why (see no_chart()). A req() that isn't met (e.g. while the inputs are
+    # first set up) still stops the chart quietly.
     try_chart <- function(f, ...) {
       s <- selection()
       tryCatch(
@@ -73,7 +83,11 @@ app_server <- function(
           end_date = end_date
         ),
         shiny.silent.error = function(e) stop(e),
-        error = function(e) NULL
+        no_chart = function(e) e,
+        error = function(e) {
+          warning("Chart failed: ", conditionMessage(e), call. = FALSE)
+          simpleCondition("There is no data to chart for this selection.")
+        }
       )
     }
 
@@ -211,4 +225,9 @@ provider_notes <- function(earlier_names, handovers) {
     return(NULL)
   }
   tagList(lapply(notes, p))
+}
+
+
+note_paragraph <- function(note) {
+  if (nzchar(note)) p(note)
 }
