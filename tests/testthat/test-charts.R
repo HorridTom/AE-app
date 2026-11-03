@@ -221,3 +221,28 @@ test_that("Periods with no attendances are left out of the performance chart", {
   expect_equal(nrow(chart_row(chart, "2017-04-01")), 0)
   expect_equal(nrow(chart_row(chart, "2017-05-01")), 1)
 })
+
+test_that("Showing part of the dates leaves the analysis unchanged", {
+  full <- perf_chart("All")
+  shown <- show_dates(full, "2023-01-01", "2024-12-01")
+
+  # The same centre lines, limits and rule breaks at every point
+  expect_equal(as.data.frame(shown), as.data.frame(full))
+
+  # Zoomed to the dates chosen, padded by half a month either side
+  xlim <- as.Date(shown$coordinates$limits$x)
+  expect_true(xlim[1] > as.Date("2022-12-01") & xlim[1] < as.Date("2023-01-01"))
+  expect_true(xlim[2] > as.Date("2024-12-01") & xlim[2] < as.Date("2025-01-01"))
+
+  # The same vertical scale whatever the dates
+  expect_equal(shown$coordinates$limits$y, full$coordinates$limits$y)
+})
+
+test_that("Dates with no data give a message", {
+  expect_error(
+    show_dates(perf_chart("All"), "2020-01-01", "2020-12-01"),
+    "There is no data for this selection between January 2020 and December 2020.",
+    fixed = TRUE,
+    class = "no_chart"
+  )
+})

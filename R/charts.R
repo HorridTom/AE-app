@@ -249,3 +249,51 @@ chart_subtitle <- function(series, name, level, measure, only_reporting) {
 
   paste0(level_title, name, type_title, reporting_title)
 }
+
+
+#' Show part of a chart's dates
+#'
+#' Zooms an autospc chart to the dates from `from` to `to`. The analysis
+#' (centre lines, control limits and rule breaks) is unchanged: it is done on
+#' all the data, and the limits at any point do not depend on which dates are
+#' shown.
+#'
+#' @param chart a chart from chart_performance() or chart_volume()
+#' @param from,to the first and last dates to show
+show_dates <- function(chart, from, to) {
+  from <- as.Date(from)
+  to <- as.Date(to)
+
+  shown <- as.data.frame(chart) |>
+    filter(x >= from, x <= to, !is.na(series))
+  if (nrow(shown) == 0) {
+    no_chart(
+      "There is no data for this selection between ",
+      format(from, "%B %Y"),
+      " and ",
+      format(to, "%B %Y"),
+      "."
+    )
+  }
+
+  # Keep autospc's horizontal axis limits, so that lines continue to the
+  # edges, but place the axis labels for the dates shown. Keep its vertical
+  # axis range, so that the scale is the same whatever dates are shown. Pad
+  # the dates shown by half the time between points, so that the first and
+  # last points shown are not cut in half, and no others are shown.
+  full_range <- as.Date(chart$scales$get_scales("x")$limits)
+  half_period <- stats::median(diff(sort(unique(as.data.frame(chart)$x)))) / 2
+  suppressMessages(
+    chart +
+      ggplot2::scale_x_date(
+        labels = scales::date_format("%Y-%m-%d"),
+        breaks = scales::breaks_pretty()(c(from, to)),
+        limits = full_range
+      ) +
+      ggplot2::coord_cartesian(
+        xlim = c(from - half_period, to + half_period),
+        ylim = chart$coordinates$limits$y,
+        expand = FALSE
+      )
+  )
+}

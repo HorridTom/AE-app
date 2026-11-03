@@ -121,3 +121,18 @@ test_that("Provider notes show earlier names and link to other codes", {
 
   expect_null(provider_notes("", list(previous = NULL, `next` = NULL)))
 })
+
+test_that("Download file names use the dates shown", {
+  testServer(server, {
+    set_inputs(
+      session,
+      country = "England",
+      level = "National",
+      t1_only_checkbox = FALSE,
+      still_reporting_checkbox = TRUE,
+      weekly_checkbox = FALSE,
+      dates = as.Date(c("2017-01-01", "2017-06-30"))
+    )
+    expect_equal(shown_dates(), as.Date(c("2017-01-01", "2017-06-30")))
+  })
+})
