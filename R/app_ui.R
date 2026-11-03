@@ -9,6 +9,7 @@ app_ui <- function(
     dashboardHeader(title = "A&E Tracker", titleWidth = 300),
     app_sidebar(organisations, start_date, end_date),
     dashboardBody(
+      useBusyIndicators(),
       tabItems(
         tabItem(tabName = "analysis", analysis_tab()),
         tabItem(tabName = "understanding", understanding_tab_content()),
@@ -165,11 +166,42 @@ analysis_tab <- function() {
         )
       )
     ),
+    charts_note(),
     chart_download_ui("performance", "Download Performance Chart"),
     chart_download_ui("attendances", "Download Attendances Chart"),
     conditionalPanel(
       condition = paste("input.tabs === 'analysis' &", js_england),
       chart_download_ui("admissions", "Download Admissions Chart")
+    )
+  )
+}
+
+
+# One note for all the charts, in place of a caption on each
+charts_note <- function() {
+  tags$div(
+    class = "charts-note",
+    style = "margin: 0 0 15px; font-size: 90%;",
+    p(
+      "These are Shewhart charts: a P\u2032 chart of the percentage of",
+      "attendances within 4 hours, and U\u2032 charts of the average daily",
+      "numbers of attendances and admissions. Rule 1: any point outside the",
+      "control limits. Rule 2: eight or more consecutive points all above, or",
+      "all below, the centre line. Points excluded from the calculation of the",
+      "limits are grey. The attendances and admissions charts start at",
+      "zero; where the performance chart does not, a break is marked at the",
+      "foot of its vertical axis. See \"Understanding the analysis\" for",
+      "more."
+    ),
+    conditionalPanel(
+      condition = paste(js_scotland, "& !input.weekly_checkbox"),
+      p(
+        "Public Health Scotland publishes weekly figures. For this monthly",
+        "analysis, each week's figures are shared between the months its days",
+        "fall in, and the first and last months, which the weeks only partly",
+        "cover, are left out. Tick \"Weekly analysis\" to see the weekly",
+        "figures as published."
+      )
     )
   )
 }

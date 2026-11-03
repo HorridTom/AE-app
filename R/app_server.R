@@ -80,7 +80,8 @@ app_server <- function(
           s$weekly,
           ...,
           start_date = start_date,
-          end_date = end_date
+          end_date = end_date,
+          x_title = if (s$weekly) "Week" else "Month"
         ),
         shiny.silent.error = function(e) stop(e),
         no_chart = function(e) e,
@@ -112,6 +113,10 @@ app_server <- function(
       })
     }
 
+    caption <- function(chart_type) {
+      reactive(chart_caption(chart_type, selection()$country))
+    }
+
     file_name <- function(chart_name) {
       reactive(download_file_name(
         selection(),
@@ -125,7 +130,8 @@ app_server <- function(
       "performance",
       show_chosen_dates(reactive(try_chart(chart_performance))),
       file_name("PerfPlot"),
-      height = 5.5
+      caption("P'"),
+      height = 6.25
     )
     chart_server(
       "attendances",
@@ -133,7 +139,8 @@ app_server <- function(
         chart_volume,
         volume = "Attendances"
       ))),
-      file_name("AttendPlot")
+      file_name("AttendPlot"),
+      caption("U'")
     )
     chart_server(
       "admissions",
@@ -141,7 +148,8 @@ app_server <- function(
         req(input$country == "England")
         try_chart(chart_volume, volume = "Admissions")
       })),
-      file_name("AdmissPlot")
+      file_name("AdmissPlot"),
+      caption("U'")
     )
   }
 }

@@ -119,7 +119,7 @@ test_that("Chart titles describe the selection", {
   expect_equal(
     p$labels$subtitle,
     paste0(
-      "Region:London\nAll department types\n",
+      "Region: London\nAll department types\n",
       "Includes only providers that are still reporting"
     )
   )
@@ -127,7 +127,7 @@ test_that("Chart titles describe the selection", {
   s <- make_series(ae_data_test, "Regional", "S08000031", weekly = TRUE)
   p <- chart_volume(s, "Regional", weekly = TRUE, end_date = "2017-12-31")
   expect_equal(p$labels$title, "Average daily A&E attendances per week")
-  expect_equal(p$labels$subtitle, "Board:Greater Glasgow and Clyde")
+  expect_equal(p$labels$subtitle, "Board: Greater Glasgow and Clyde")
 })
 
 # Where there is no chart, chart functions stop with a "no_chart" condition,
@@ -245,4 +245,47 @@ test_that("Dates with no data give a message", {
     fixed = TRUE,
     class = "no_chart"
   )
+})
+
+test_that("The vertical axis fits all the data, starting at zero only near it", {
+  full <- perf_chart("All")
+  ylim <- full$coordinates$limits$y
+  d <- as.data.frame(full)
+  expect_lte(ylim[1], min(d$series, d$lcl, na.rm = TRUE))
+  expect_gte(ylim[2], max(d$series, d$ucl, na.rm = TRUE))
+  expect_gt(ylim[1], 0)
+
+  # Unchanged by the dates shown
+  shown <- show_dates(full, "2024-01-01", "2024-12-01")
+  expect_equal(shown$coordinates$limits$y, ylim)
+})
+
+test_that("Attendance and admission charts always start at zero", {
+  attendances <- volume_chart("All", "Attendances")
+  admissions <- volume_chart("All", "Admissions")
+  expect_equal(attendances$coordinates$limits$y[1], 0)
+  expect_equal(admissions$coordinates$limits$y[1], 0)
+  expect_gte(
+    attendances$coordinates$limits$y[2],
+    max(as.data.frame(attendances)$ucl, na.rm = TRUE)
+  )
+})
+
+test_that("Download captions give the chart type, rules, source and licence", {
+  caption <- chart_caption("P'", "Scotland", as.Date("2026-11-03"))
+  expect_match(caption, "^P' Shewhart chart\\. Rule 1")
+  expect_match(caption, "Public Health Scotland", fixed = TRUE)
+  expect_match(caption, "Open\\s+Government Licence v3\\.0")
+  expect_match(caption, "03 November 2026.", fixed = TRUE)
+})
+
+test_that("Charts draw, with or without an axis break and a caption", {
+  file <- tempfile(fileext = ".png")
+  png(file)
+  expect_no_error(draw_chart(perf_chart("All")))
+  expect_no_error(draw_chart(
+    show_dates(perf_chart("All"), "2024-01-01", "2024-12-01"),
+    caption = chart_caption("P'", "England")
+  ))
+  dev.off()
 })
