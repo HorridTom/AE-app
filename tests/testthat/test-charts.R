@@ -130,11 +130,94 @@ test_that("Chart titles describe the selection", {
   expect_equal(p$labels$subtitle, "Board:Greater Glasgow and Clyde")
 })
 
-test_that("A provider with no admissions gives an error, not a chart", {
-  s <- make_series(ae_data_test, "Provider", "RQM")
+# Where there is no chart, chart functions stop with a "no_chart" condition,
+# whose message the app shows instead.
+
+test_that("No admissions gives a message, not a chart", {
+  s <- rqm("All")
   s$Total_Adm <- 0
   expect_error(
     chart_volume(s, "Provider", volume = "Admissions"),
-    "No admissions data"
+    "No emergency admissions via A&E are reported",
+    class = "no_chart"
   )
+})
+
+test_that("Type 1 for a provider with no type 1 department gives a message", {
+  s <- rqm("Typ1")
+  s$Total_Att <- 0
+  s$Within_4h <- 0
+  s$Greater_4h <- 0
+  expected <- "There are no type 1 \\(major A&E department\\) attendances"
+  expect_error(
+    chart_performance(s, "Provider", "Typ1"),
+    expected,
+    class = "no_chart"
+  )
+  expect_error(
+    chart_volume(s, "Provider", "Typ1", volume = "Attendances"),
+    expected,
+    class = "no_chart"
+  )
+})
+
+test_that("Performance always 100% is charted, with a note explaining it", {
+  s <- rqm("All")
+  s$Within_4h <- s$Total_Att
+  s$Greater_4h <- 0
+  chart <- suppressWarnings(
+    chart_performance(s, "Provider", end_date = "2026-09-30")
+  )
+  expect_s3_class(chart, "ggplot")
+  expect_true(all(as.data.frame(chart)$series == 100))
+  expect_equal(
+    all_within_4h_note(s, end_date = "2026-09-30"),
+    paste(
+      "Every attendance was within 4 hours in every month from July 2015",
+      "to September 2026, so there is no variation from which to calculate",
+      "control limits."
+    )
+  )
+  expect_equal(all_within_4h_note(rqm("All"), end_date = "2026-09-30"), "")
+})
+
+test_that("No data in the period gives a message saying when the data ends", {
+  # Scotland: the last week, even where weeks are apportioned to months
+  s <- make_series(ae_data_test, "Provider", "A210H")
+  expect_error(
+    chart_volume(
+      s,
+      "Provider",
+      start_date = "2018-02-01",
+      end_date = "2026-09-30"
+    ),
+    "The latest data is for the week ending 7 January 2018.",
+    fixed = TRUE,
+    class = "no_chart"
+  )
+
+  expect_error(
+    chart_volume(
+      rqm("All"),
+      "Provider",
+      start_date = "2026-10-01",
+      end_date = "2026-12-31"
+    ),
+    paste(
+      "between October 2026 and December 2026.",
+      "The latest data is for September 2026."
+    ),
+    fixed = TRUE,
+    class = "no_chart"
+  )
+})
+
+test_that("Periods with no attendances are left out of the performance chart", {
+  # e.g. a type 1 breach reported with no type 1 attendances
+  s <- rqm("All")
+  s$Total_Att[s$Period == as.Date("2017-04-01")] <- 0
+  s$Within_4h[s$Period == as.Date("2017-04-01")] <- -1
+  chart <- chart_performance(s, "Provider", end_date = "2026-09-30")
+  expect_equal(nrow(chart_row(chart, "2017-04-01")), 0)
+  expect_equal(nrow(chart_row(chart, "2017-05-01")), 1)
 })

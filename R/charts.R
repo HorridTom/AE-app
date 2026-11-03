@@ -17,7 +17,16 @@ chart_performance <- function(
   end_date = Sys.Date(),
   x_title = "Month"
 ) {
-  series <- series |> filter(!is.na(Within_4h))
+  check_type_1(series, measure)
+
+  # A percentage needs attendances: leave out periods with no 4-hour data, or
+  # no attendances
+  series <- series |> filter(!is.na(Within_4h), Total_Att > 0)
+  if (nrow(series) == 0) {
+    no_chart(
+      "There is no data on attendances within 4 hours for this selection."
+    )
+  }
   name <- latest_name(series)
   series <- restrict_to_period(series, start_date, end_date)
 
@@ -67,12 +76,17 @@ chart_volume <- function(
   # The column of `series` holding the chosen volume
   total_col <- c(Attendances = "Total_Att", Admissions = "Total_Adm")[[volume]]
 
+  check_type_1(series, measure)
   name <- latest_name(series)
   series <- restrict_to_period(series, start_date, end_date)
 
-  # e.g. admissions for a provider that has none: nothing to chart
+  # e.g. admissions for a provider with no type 1 department
   if (all(is.na(series[[total_col]]) | series[[total_col]] == 0)) {
-    stop("No ", tolower(volume), " data for this selection")
+    no_chart(switch(
+      volume,
+      Attendances = "No attendances are reported for this selection.",
+      Admissions = "No emergency admissions via A&E are reported for this selection."
+    ))
   }
 
   # autospc needs whole-number counts. Counts are fractional where weekly
@@ -116,15 +130,90 @@ latest_name <- function(series) {
 }
 
 restrict_to_period <- function(series, start_date, end_date) {
+  data_end <- series$Data_End[1]
+  scotland <- series$Nat_Code[1] == "S"
   series <- series |>
     filter(
       Period >= as.Date(start_date, tz = "Europe/London"),
       Period <= as.Date(end_date, tz = "Europe/London")
     )
   if (nrow(series) == 0) {
-    stop("No data for provider period specified")
+    no_chart(
+      "There is no data for this selection between ",
+      format(as.Date(start_date), "%B %Y"),
+      " and ",
+      format(as.Date(end_date), "%B %Y"),
+      ". The latest data is for ",
+      format_period(data_end, weekly = scotland),
+      "."
+    )
   }
   series
+}
+
+# Where every attendance in the period was within 4 hours, the performance
+# chart is a line at 100% with no control limits. This explains why, for
+# showing with the chart. "" otherwise.
+all_within_4h_note <- function(
+  series,
+  weekly = FALSE,
+  start_date = "2015-07-01",
+  end_date = Sys.Date()
+) {
+  series <- series |>
+    filter(
+      !is.na(Within_4h),
+      Total_Att > 0,
+      Period >= as.Date(start_date, tz = "Europe/London"),
+      Period <= as.Date(end_date, tz = "Europe/London")
+    )
+  if (nrow(series) == 0 || any(series$Greater_4h > 0)) {
+    return("")
+  }
+  paste0(
+    "Every attendance was within 4 hours in every ",
+    if (weekly) "week" else "month",
+    " from ",
+    format_period(min(series$Period), weekly),
+    " to ",
+    format_period(max(series$Period), weekly),
+    ", so there is no variation from which to calculate control limits."
+  )
+}
+
+# Type 1 departments are major A&E departments. Many providers (e.g. walk-in
+# and urgent treatment centres) have none.
+check_type_1 <- function(series, measure) {
+  if (
+    measure == "Typ1" && all(is.na(series$Total_Att) | series$Total_Att == 0)
+  ) {
+    no_chart(
+      "There are no type 1 (major A&E department) attendances for this ",
+      "selection. Untick \"Only include type 1 departments\" to see all ",
+      "attendances."
+    )
+  }
+}
+
+# e.g. "July 2017", or "the week ending 3 May 2015"
+format_period <- function(date, weekly = FALSE) {
+  if (weekly) {
+    paste(
+      "the week ending",
+      as.integer(format(date, "%d")),
+      format(date, "%B %Y")
+    )
+  } else {
+    format(date, "%B %Y")
+  }
+}
+
+# Stop, with a message for the app's user explaining why there is no chart
+no_chart <- function(...) {
+  stop(structure(
+    class = c("no_chart", "error", "condition"),
+    list(message = paste0(...), call = NULL)
+  ))
 }
 
 # e.g. "Region:London\nAll department types\nIncludes only providers that are
