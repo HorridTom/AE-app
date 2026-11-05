@@ -12,7 +12,10 @@ period_min <- function(weekly) {
 #' @param series a data frame from make_series()
 #' @param level,measure,only_reporting,weekly the values used to make the
 #'   series, for the chart's subtitle and title
-#' @param start_date,end_date the period to chart
+#' @param start_date,end_date the period analysed
+#' @param show_from,show_to the dates shown. The chart is analysed on all the
+#'   data from start_date to end_date, so the limits at any point don't depend
+#'   on the dates shown.
 #' @param x_title horizontal axis title
 chart_performance <- function(
   series,
@@ -22,6 +25,8 @@ chart_performance <- function(
   weekly = FALSE,
   start_date = "2015-07-01",
   end_date = Sys.Date(),
+  show_from = start_date,
+  show_to = end_date,
   x_title = "Month"
 ) {
   check_type_1(series, measure)
@@ -42,6 +47,7 @@ chart_performance <- function(
   # rows; round them, as autospc would otherwise do with a warning.
   series <- series |>
     mutate(Within_4h = round(Within_4h), Total_Att = round(Total_Att))
+  window <- display_window(series$Period, show_from, show_to)
 
   autospc::autospc(
     series,
@@ -51,6 +57,8 @@ chart_performance <- function(
     chart_type = "P'",
     max_exclusions = 3L,
     period_min = period_min(weekly),
+    floating_median = "auto",
+    display_window = window,
     title = "Percentage A&E attendances\nwith time in department < 4h",
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
     override_x_title = x_title,
@@ -61,7 +69,8 @@ chart_performance <- function(
     flip_labels = TRUE,
     use_caption = FALSE
   ) |>
-    fit_y_axis(upper_annotation_sf = 1.08, lower_annotation_sf = 0.92)
+    fit_y_axis(upper_annotation_sf = 1.08, lower_annotation_sf = 0.92) |>
+    date_axis(show_from, show_to)
 }
 
 
@@ -81,6 +90,8 @@ chart_volume <- function(
   volume = "Attendances",
   start_date = "2015-07-01",
   end_date = Sys.Date(),
+  show_from = start_date,
+  show_to = end_date,
   x_title = "Month"
 ) {
   # The column of `series` holding the chosen volume
@@ -103,6 +114,11 @@ chart_volume <- function(
   # data have been apportioned to months (Scotland), and in a few source
   # rows; round them, as autospc would otherwise do with a warning.
   series$total <- round(series[[total_col]])
+  window <- display_window(
+    series$Period[!is.na(series$total)],
+    show_from,
+    show_to
+  )
 
   per <- if (weekly) "week" else "month"
   title <- switch(
@@ -119,6 +135,8 @@ chart_volume <- function(
     chart_type = "U'",
     max_exclusions = 3L,
     period_min = period_min(weekly),
+    floating_median = "auto",
+    display_window = window,
     title = title,
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
     override_x_title = x_title,
@@ -135,7 +153,8 @@ chart_volume <- function(
       upper_annotation_sf = 1.1,
       lower_annotation_sf = 0.9,
       from_zero = TRUE
-    )
+    ) |>
+    date_axis(show_from, show_to)
 }
 
 
@@ -268,22 +287,13 @@ chart_subtitle <- function(series, name, level, measure, only_reporting) {
 }
 
 
-#' Show part of a chart's dates
-#'
-#' Zooms an autospc chart to the dates from `from` to `to`. The analysis
-#' (centre lines, control limits and rule breaks) is unchanged: it is done on
-#' all the data, and the limits at any point do not depend on which dates are
-#' shown.
-#'
-#' @param chart a chart from chart_performance() or chart_volume()
-#' @param from,to the first and last dates to show
-show_dates <- function(chart, from, to) {
+# The dates to show, as autospc's display_window: padded by half the time
+# between points, so that the first and last points shown are not cut in half,
+# and no others are shown.
+display_window <- function(periods, from, to) {
   from <- as.Date(from)
   to <- as.Date(to)
-
-  shown <- as.data.frame(chart) |>
-    filter(x >= from, x <= to, !is.na(series))
-  if (nrow(shown) == 0) {
+  if (!any(periods >= from & periods <= to)) {
     no_chart(
       "There is no data for this selection between ",
       format(from, "%B %Y"),
@@ -292,28 +302,28 @@ show_dates <- function(chart, from, to) {
       "."
     )
   }
+  half_period <- stats::median(diff(sort(unique(periods)))) / 2
+  if (is.na(half_period)) {
+    half_period <- as.difftime(15, units = "days")
+  }
+  c(from - half_period, to + half_period)
+}
 
-  # Keep autospc's horizontal axis limits, so that lines continue to the
-  # edges, but place the axis labels for the dates shown. Keep its vertical
-  # axis range, so that the scale is the same whatever dates are shown. Pad
-  # the dates shown by half the time between points, so that the first and
-  # last points shown are not cut in half, and no others are shown.
+# Place the date axis labels for the dates shown. Keeps the axis limits
+# autospc set, so that lines continue to the edges of the chart.
+date_axis <- function(chart, from, to) {
   full_range <- as.Date(chart$scales$get_scales("x")$limits)
-  half_period <- stats::median(diff(sort(unique(as.data.frame(chart)$x)))) / 2
+  shown <- c(as.Date(from), as.Date(to))
+  breaks <- scales::breaks_pretty(n = 8)(shown)
   suppressMessages(
     chart +
       ggplot2::scale_x_date(
         labels = scales::label_date_short(),
-        breaks = scales::breaks_pretty(n = 8)(c(from, to)),
+        breaks = breaks[breaks >= shown[1] & breaks <= shown[2]],
         limits = full_range
       ) +
       ggplot2::theme(
         axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5)
-      ) +
-      ggplot2::coord_cartesian(
-        xlim = c(from - half_period, to + half_period),
-        ylim = chart$coordinates$limits$y,
-        expand = FALSE
       )
   )
 }
@@ -340,7 +350,16 @@ fit_y_axis <- function(
   if (from_zero || low < 0.2 * high) {
     low <- 0
   }
-  suppressMessages(chart + ggplot2::coord_cartesian(ylim = c(low, high)))
+  # Keep the dates autospc zoomed to (display_window); no further padding, as
+  # the window and the vertical range are already padded
+  suppressMessages(
+    chart +
+      ggplot2::coord_cartesian(
+        xlim = chart$coordinates$limits$x,
+        ylim = c(low, high),
+        expand = FALSE
+      )
+  )
 }
 
 
@@ -349,7 +368,7 @@ fit_y_axis <- function(
 #' Draws a chart from chart_performance() or chart_volume(), marking the
 #' vertical axis with a break where it does not start at zero.
 #'
-#' @param chart the chart, usually after show_dates()
+#' @param chart a chart from chart_performance() or chart_volume()
 #' @param caption optional caption, e.g. from chart_caption()
 draw_chart <- function(chart, caption = NULL) {
   if (!is.null(caption)) {
@@ -456,7 +475,7 @@ is_narrow <- function(width) {
 #' a little smaller, and the horizontal axis has fewer labels. Wider charts
 #' are unchanged. Only the layout changes, not the analysis.
 #'
-#' @param chart a chart, after show_dates()
+#' @param chart a chart from chart_performance() or chart_volume()
 #' @param width the width it is shown at, in pixels
 fit_to_width <- function(chart, width) {
   if (!is_narrow(width)) {
@@ -470,8 +489,11 @@ fit_to_width <- function(chart, width) {
     lines <- strsplit(text, "\n", fixed = TRUE)[[1]]
     paste(unlist(lapply(lines, strwrap, width = characters)), collapse = "\n")
   }
+  # The dates shown, without the room after them for the median's label
   shown <- as.Date(chart$coordinates$limits$x)
+  shown[2] <- min(shown[2], max(chart$data$x))
   full_range <- as.Date(chart$scales$get_scales("x")$limits)
+  breaks <- scales::breaks_pretty(n = max(3, floor(width / 90)))(shown)
 
   suppressMessages(
     chart +
@@ -481,7 +503,7 @@ fit_to_width <- function(chart, width) {
       ) +
       ggplot2::scale_x_date(
         labels = scales::label_date_short(),
-        breaks = scales::breaks_pretty(n = max(3, floor(width / 90)))(shown),
+        breaks = breaks[breaks >= shown[1] & breaks <= shown[2]],
         limits = full_range
       ) +
       ggplot2::guides(colour = ggplot2::guide_legend(nrow = 2)) +

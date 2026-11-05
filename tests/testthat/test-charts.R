@@ -1,5 +1,5 @@
 # The control limits below are regression values: they are what autospc
-# 0.2.0.9002 gives (with period_min = 24 for monthly data), and check that the
+# 0.2.0.9004 gives (with period_min = 24 for monthly data), and check that the
 # charts don't change unintentionally. If a new version of autospc changes them
 # on purpose, check the new charts and update the values.
 
@@ -10,8 +10,19 @@ chart_row <- function(chart, month) {
 
 rqm <- function(measure) make_series(ae_data_test, "Provider", "RQM", measure)
 
-perf_chart <- function(measure) {
-  chart_performance(rqm(measure), "Provider", measure, end_date = "2026-09-30")
+perf_chart <- function(
+  measure,
+  show_from = "2015-07-01",
+  show_to = "2026-09-30"
+) {
+  chart_performance(
+    rqm(measure),
+    "Provider",
+    measure,
+    end_date = "2026-09-30",
+    show_from = show_from,
+    show_to = show_to
+  )
 }
 
 volume_chart <- function(measure, volume) {
@@ -224,10 +235,15 @@ test_that("Periods with no attendances are left out of the performance chart", {
 
 test_that("Showing part of the dates leaves the analysis unchanged", {
   full <- perf_chart("All")
-  shown <- show_dates(full, "2023-01-01", "2024-12-01")
+  shown <- perf_chart("All", "2023-01-01", "2024-12-01")
 
   # The same centre lines, limits and rule breaks at every point
-  expect_equal(as.data.frame(shown), as.data.frame(full))
+  analysis <- function(chart) {
+    as.data.frame(chart) |>
+      select(x, series, cl, ucl, lcl, highlight) |>
+      distinct()
+  }
+  expect_equal(analysis(shown), analysis(full))
 
   # Zoomed to the dates chosen, padded by half a month either side
   xlim <- as.Date(shown$coordinates$limits$x)
@@ -238,9 +254,21 @@ test_that("Showing part of the dates leaves the analysis unchanged", {
   expect_equal(shown$coordinates$limits$y, full$coordinates$limits$y)
 })
 
+test_that("The floating median is shown only with the end of the data", {
+  labels <- function(chart) {
+    built <- ggplot2::ggplot_build(chart)
+    unlist(lapply(built$data, function(layer) as.character(layer$label)))
+  }
+  expect_true(any(grepl("Median", labels(perf_chart("All")))))
+  expect_false(any(grepl(
+    "Median",
+    labels(perf_chart("All", "2023-01-01", "2024-12-01"))
+  )))
+})
+
 test_that("Dates with no data give a message", {
   expect_error(
-    show_dates(perf_chart("All"), "2020-01-01", "2020-12-01"),
+    perf_chart("All", "2020-01-01", "2020-12-01"),
     "There is no data for this selection between January 2020 and December 2020.",
     fixed = TRUE,
     class = "no_chart"
@@ -256,7 +284,7 @@ test_that("The vertical axis fits all the data, starting at zero only near it", 
   expect_gt(ylim[1], 0)
 
   # Unchanged by the dates shown
-  shown <- show_dates(full, "2024-01-01", "2024-12-01")
+  shown <- perf_chart("All", "2024-01-01", "2024-12-01")
   expect_equal(shown$coordinates$limits$y, ylim)
 })
 
@@ -284,14 +312,14 @@ test_that("Charts draw, with or without an axis break and a caption", {
   png(file)
   expect_no_error(draw_chart(perf_chart("All")))
   expect_no_error(draw_chart(
-    show_dates(perf_chart("All"), "2024-01-01", "2024-12-01"),
+    perf_chart("All", "2024-01-01", "2024-12-01"),
     caption = chart_caption("P'", "England")
   ))
   dev.off()
 })
 
 test_that("Charts are laid out for narrow screens without changing the analysis", {
-  chart <- show_dates(perf_chart("All"), "2015-07-01", "2026-09-30")
+  chart <- perf_chart("All")
 
   # Wide: unchanged
   expect_identical(fit_to_width(chart, 1000), chart)
