@@ -3,7 +3,14 @@ server <- app_server(ae_data_test, orgs, end_date = as.Date("2026-11-02"))
 
 # The charts drawn from the test data warn that 12 points are too few to form
 # control limits; that doesn't matter for these tests.
-set_inputs <- function(session, ...) suppressWarnings(session$setInputs(...))
+# The selection and the dates shown are debounced, so time is moved on until
+# they have caught up with the inputs.
+set_inputs <- function(session, ...) {
+  suppressWarnings({
+    session$setInputs(...)
+    session$elapse(600)
+  })
+}
 
 test_that("The selection follows the inputs", {
   testServer(server, {

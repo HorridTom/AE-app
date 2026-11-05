@@ -49,10 +49,16 @@ app_server <- function(
       updateSelectInput(session, menu, selected = input$switch_provider)
     })
 
-    selection <- reactive({
-      req(input$country, input$level)
-      make_selection(input, organisations)
-    })
+    # Debounced, so that a change that sets off others (e.g. changing country
+    # resets the level) is charted once, when the inputs have settled, rather
+    # than at each step
+    selection <- debounce(
+      reactive({
+        req(input$country, input$level)
+        make_selection(input, organisations)
+      }),
+      250
+    )
 
     series <- reactive({
       s <- selection()
@@ -106,6 +112,17 @@ app_server <- function(
       500
     )
 
+    # Everything a chart depends on. Charts already analysed, by any user of
+    # this app process, are kept (cache = "app"), so going back to a
+    # selection, or choosing one someone else has, only needs it drawn. The
+    # data is read once, when the app starts, so kept charts stay current.
+    chart_key <- reactive(list(selection(), shown_dates()))
+
+    cached_chart <- function(name, f, ...) {
+      reactive(try_chart(f, ...)) |>
+        bindCache(name, chart_key(), cache = "app")
+    }
+
     caption <- function(chart_type) {
       reactive(chart_caption(chart_type, selection()$country))
     }
@@ -119,24 +136,30 @@ app_server <- function(
       ))
     }
 
+    admissions_chart <- cached_chart(
+      "admissions",
+      chart_volume,
+      volume = "Admissions"
+    )
+
     chart_server(
       "performance",
-      reactive(try_chart(chart_performance)),
+      cached_chart("performance", chart_performance),
       file_name("PerfPlot"),
       caption("P'"),
       height = 6.25
     )
     chart_server(
       "attendances",
-      reactive(try_chart(chart_volume, volume = "Attendances")),
+      cached_chart("attendances", chart_volume, volume = "Attendances"),
       file_name("AttendPlot"),
       caption("U'")
     )
     chart_server(
       "admissions",
       reactive({
-        req(input$country == "England")
-        try_chart(chart_volume, volume = "Admissions")
+        req(selection()$country == "England")
+        admissions_chart()
       }),
       file_name("AdmissPlot"),
       caption("U'")
