@@ -81,6 +81,8 @@ app_server <- function(
           ...,
           start_date = start_date,
           end_date = end_date,
+          show_from = shown_dates()[1],
+          show_to = shown_dates()[2],
           x_title = if (s$weekly) "Week" else "Month"
         ),
         shiny.silent.error = function(e) stop(e),
@@ -94,24 +96,15 @@ app_server <- function(
 
     # The dates the user has chosen to show. The charts are analysed on all
     # the data from start_date to end_date and then zoomed to these dates, so
-    # that the limits at any point do not depend on the dates shown.
-    shown_dates <- reactive({
-      req(input$dates)
-      as.Date(input$dates)
-    })
-
-    show_chosen_dates <- function(chart) {
+    # that the limits at any point do not depend on the dates shown. Debounced
+    # so that dragging the slider doesn't redraw the charts at every step.
+    shown_dates <- debounce(
       reactive({
-        full_chart <- chart()
-        if (inherits(full_chart, "condition")) {
-          return(full_chart)
-        }
-        tryCatch(
-          show_dates(full_chart, shown_dates()[1], shown_dates()[2]),
-          no_chart = function(e) e
-        )
-      })
-    }
+        req(input$dates)
+        as.Date(input$dates)
+      }),
+      500
+    )
 
     caption <- function(chart_type) {
       reactive(chart_caption(chart_type, selection()$country))
@@ -128,26 +121,23 @@ app_server <- function(
 
     chart_server(
       "performance",
-      show_chosen_dates(reactive(try_chart(chart_performance))),
+      reactive(try_chart(chart_performance)),
       file_name("PerfPlot"),
       caption("P'"),
       height = 6.25
     )
     chart_server(
       "attendances",
-      show_chosen_dates(reactive(try_chart(
-        chart_volume,
-        volume = "Attendances"
-      ))),
+      reactive(try_chart(chart_volume, volume = "Attendances")),
       file_name("AttendPlot"),
       caption("U'")
     )
     chart_server(
       "admissions",
-      show_chosen_dates(reactive({
+      reactive({
         req(input$country == "England")
         try_chart(chart_volume, volume = "Admissions")
-      })),
+      }),
       file_name("AdmissPlot"),
       caption("U'")
     )
