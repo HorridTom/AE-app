@@ -64,6 +64,7 @@ chart_performance <- function(
     override_x_title = x_title,
     override_y_title = "Percentage within 4 hours",
     annotation_size = 4,
+    annotation_arrows = TRUE,
     upper_annotation_sf = 1.08,
     lower_annotation_sf = 0.92,
     flip_labels = TRUE,
