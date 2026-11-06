@@ -234,7 +234,7 @@
     },
     "autospc": {
       "Package": "autospc",
-      "Version": "0.2.0.9004",
+      "Version": "0.2.0.9005",
       "Source": "GitHub",
       "Title": "Automatically Partitioned SPC Charts",
       "Authors@R": "c( person(\"Thomas\", \"Woodcock\", , \"woodcock.thomas@gmail.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-4735-4856\")), person(\"Imogen\", \"O'Connor\", , \"imogen.connor-helleur@imperial.ac.uk\", role = \"aut\") )",
@@ -280,7 +280,7 @@
       "RemoteUsername": "HorridTom",
       "RemotePkgRef": "HorridTom/autospc",
       "RemoteRef": "HEAD",
-      "RemoteSha": "753b0d723e38a1d63a169b3b933dd4afea12de51",
+      "RemoteSha": "111d678078e9dd8f14a41b63793921e94951eb34",
       "NeedsCompilation": "no",
       "Author": "Thomas Woodcock [aut, cre] (ORCID: <https://orcid.org/0000-0002-4735-4856>), Imogen O'Connor [aut]",
       "Maintainer": "Thomas Woodcock <woodcock.thomas@gmail.com>"
