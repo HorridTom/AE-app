@@ -1,5 +1,5 @@
 # The control limits below are regression values: they are what autospc
-# 0.2.0.9004 gives (with period_min = 24 for monthly data), and check that the
+# 0.2.0.9006 gives (with period_min = 24 for monthly data), and check that the
 # charts don't change unintentionally. If a new version of autospc changes them
 # on purpose, check the new charts and update the values.
 
@@ -223,14 +223,14 @@ test_that("No data in the period gives a message saying when the data ends", {
   )
 })
 
-test_that("Periods with no attendances are left out of the performance chart", {
+test_that("Periods with no attendances have no value on the performance chart", {
   # e.g. a type 1 breach reported with no type 1 attendances
   s <- rqm("All")
   s$Total_Att[s$Period == as.Date("2017-04-01")] <- 0
   s$Within_4h[s$Period == as.Date("2017-04-01")] <- -1
   chart <- chart_performance(s, "Provider", end_date = "2026-09-30")
-  expect_equal(nrow(chart_row(chart, "2017-04-01")), 0)
-  expect_equal(nrow(chart_row(chart, "2017-05-01")), 1)
+  expect_true(all(is.na(chart_row(chart, "2017-04-01")$y)))
+  expect_false(any(is.na(chart_row(chart, "2017-05-01")$y)))
 })
 
 test_that("Showing part of the dates leaves the analysis unchanged", {
@@ -346,4 +346,21 @@ test_that("Limits are calculated from 24 months, or 21 weeks", {
   s <- make_series(ae_data_test, "Regional", "S08000031", weekly = TRUE)
   weekly <- chart_performance(s, "Regional", weekly = TRUE, x_title = "Week")
   expect_equal(calculation_points(weekly), 21)
+})
+
+test_that("Months with no data break the line", {
+  gap <- as.Date(c("2024-03-01", "2024-04-01"))
+  with_gap <- ae_data_test |>
+    filter(!(Prov_Code == "RQM" & as.Date(Period) %in% gap))
+  s <- make_series(with_gap, "Provider", "RQM")
+
+  for (chart in list(
+    chart_performance(s, "Provider", end_date = "2026-09-30"),
+    chart_volume(s, "Provider", volume = "Attendances", end_date = "2026-09-30")
+  )) {
+    # The missing months are in the chart, with no value
+    d <- as.data.frame(chart)
+    expect_true(all(gap %in% d$x))
+    expect_true(all(is.na(d$y[d$x %in% gap])))
+  }
 })

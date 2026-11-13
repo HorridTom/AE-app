@@ -1,7 +1,7 @@
 # Expected values are as published by NHS England and Public Health Scotland.
 
 value_in <- function(series, period, column) {
-  series[[column]][series$Period == as.Date(period)]
+  series[[column]][series$Period %in% as.Date(period)]
 }
 
 expect_counts <- function(series, period, total, within, over, ...) {
@@ -157,4 +157,32 @@ test_that("Scotland has no type 1 breakdown, so measure is ignored", {
     make_series(ae_data_test, "National", "S", "Typ1"),
     make_series(ae_data_test, "National", "S", "All")
   )
+})
+
+test_that("Months with no data are added, with missing values", {
+  gap <- as.Date(c("2024-03-01", "2024-04-01"))
+  with_gap <- ae_data_test |>
+    filter(!(Prov_Code == "RQM" & as.Date(Period) %in% gap))
+  s <- make_series(with_gap, "Provider", "RQM")
+
+  expect_equal(s$Period, sort(make_series(ae_data_test, "Provider", "RQM")$Period))
+  expect_true(all(is.na(value_in(s, gap, "Total_Att"))))
+  expect_true(all(is.na(value_in(s, gap, "Performance"))))
+  expect_equal(value_in(s, gap, "Code"), c("RQM", "RQM"))
+  expect_equal(value_in(s, gap, "days_in_period"), c(31, 30))
+})
+
+test_that("Weeks with no data are added, with missing values", {
+  weeks <- tibble::tibble(
+    Code = "X",
+    Name = "X",
+    Nat_Code = "S",
+    Period = as.Date(c("2026-01-04", "2026-01-11", "2026-02-01")),
+    Data_End = as.Date("2026-02-01"),
+    Total_Att = c(1, 2, 3)
+  )
+  padded <- pad_missing_periods(weeks, by = "week")
+  expect_equal(padded$Period, seq(as.Date("2026-01-04"), by = "week", length.out = 5))
+  expect_equal(padded$Total_Att, c(1, 2, NA, NA, 3))
+  expect_equal(padded$Name, rep("X", 5))
 })

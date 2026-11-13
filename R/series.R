@@ -63,12 +63,12 @@ make_series <- function(
 
   series |>
     mutate(
-      Performance = Within_4h / Total_Att,
       Period = as.Date(Period, tz = "Europe/London"),
       Data_End = data_end
     ) |>
-    arrange(Period) |>
+    pad_missing_periods(by = if (weekly) "week" else "month") |>
     mutate(
+      Performance = Within_4h / Total_Att,
       days_in_period = if (weekly) {
         7
       } else {
@@ -163,4 +163,15 @@ weekly_to_monthly <- function(series) {
     ) |>
     filter(row_number() != 1 & row_number() != nrow(monthly)) |>
     mutate(Period = zoo::as.Date(zoo::as.yearmon(Period)))
+}
+
+# Adds a row, with missing values, for each month or week between the first
+# and last with no data, so that the charts break the line there rather than
+# joining the points either side.
+pad_missing_periods <- function(series, by) {
+  all_periods <- seq(min(series$Period), max(series$Period), by = by)
+  series |>
+    tidyr::complete(Period = all_periods) |>
+    tidyr::fill(Code, Name, Nat_Code, Data_End, .direction = "downup") |>
+    arrange(Period)
 }

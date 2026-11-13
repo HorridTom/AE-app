@@ -31,14 +31,22 @@ chart_performance <- function(
 ) {
   check_type_1(series, measure)
 
-  # A percentage needs attendances: leave out periods with no 4-hour data, or
-  # no attendances
-  series <- series |> filter(!is.na(Within_4h), Total_Att > 0)
-  if (nrow(series) == 0) {
+  # A percentage needs attendances: periods with no 4-hour data, or no
+  # attendances, have no value, so they break the line like periods with no
+  # data at all. The chart runs from the first period with a value to the
+  # last.
+  no_value <- is.na(series$Within_4h) |
+    is.na(series$Total_Att) |
+    series$Total_Att <= 0
+  if (all(no_value)) {
     no_chart(
       "There is no data on attendances within 4 hours for this selection."
     )
   }
+  series$Within_4h[no_value] <- NA
+  series$Total_Att[no_value] <- NA
+  has_value <- which(!no_value)
+  series <- series[min(has_value):max(has_value), ]
   name <- latest_name(series)
   series <- restrict_to_period(series, start_date, end_date)
 
@@ -47,7 +55,11 @@ chart_performance <- function(
   # rows; round them, as autospc would otherwise do with a warning.
   series <- series |>
     mutate(Within_4h = round(Within_4h), Total_Att = round(Total_Att))
-  window <- display_window(series$Period, show_from, show_to)
+  window <- display_window(
+    series$Period[!is.na(series$Within_4h)],
+    show_from,
+    show_to
+  )
 
   autospc::autospc(
     series,
@@ -57,6 +69,10 @@ chart_performance <- function(
     chart_type = "P'",
     max_exclusions = 3L,
     period_min = period_min(weekly),
+    # Months/weeks with no data are rows with missing values (see
+    # pad_missing_periods()), which break the line. They also end a run, so a
+    # shift isn't detected across a gap in the data.
+    na_ends_run = TRUE,
     floating_median = "auto",
     display_window = window,
     title = "Percentage A&E attendances\nwith time in department < 4h",
@@ -136,6 +152,10 @@ chart_volume <- function(
     chart_type = "U'",
     max_exclusions = 3L,
     period_min = period_min(weekly),
+    # Months/weeks with no data are rows with missing values (see
+    # pad_missing_periods()), which break the line. They also end a run, so a
+    # shift isn't detected across a gap in the data.
+    na_ends_run = TRUE,
     floating_median = "auto",
     display_window = window,
     title = title,
