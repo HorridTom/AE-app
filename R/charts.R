@@ -74,6 +74,8 @@ chart_performance <- function(
     # shift isn't detected across a gap in the data.
     na_ends_run = TRUE,
     floating_median = "auto",
+    # Label the median before a long gap too, as well as the last one
+    floating_median_labels = "gaps",
     display_window = window,
     title = "Percentage A&E attendances\nwith time in department < 4h",
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
@@ -157,6 +159,8 @@ chart_volume <- function(
     # shift isn't detected across a gap in the data.
     na_ends_run = TRUE,
     floating_median = "auto",
+    # Label the median before a long gap too, as well as the last one
+    floating_median_labels = "gaps",
     display_window = window,
     title = title,
     subtitle = chart_subtitle(series, name, level, measure, only_reporting),
