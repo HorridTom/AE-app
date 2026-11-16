@@ -17,10 +17,8 @@ log_timing("data read and prepared")
 ui <- app_ui(organisations)
 log_timing("UI built")
 
-# Runs once the app is listening (see R/startup.R)
-later::later(preload_chart_packages)
-
 shinyApp(
-  ui = ui,
+  # Warms up after the first page request (see R/startup.R)
+  ui = warm_up_on_first_request(ui, ae_data),
   server = app_server(ae_data, organisations)
 )

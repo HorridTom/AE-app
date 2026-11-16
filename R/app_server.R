@@ -6,6 +6,7 @@ app_server <- function(
 ) {
   function(input, output, session) {
     log_timing("session started")
+    stop_warm_up()
 
     # The analysis level labels depend on the country. Changing country starts
     # again at national level.
