@@ -22,12 +22,21 @@ chart_server <- function(id, chart, filename, caption, height = 6) {
       session$clientData[[paste0("output_", session$ns("plot"), "_width")]]
     }
 
+    # Time the session's first chart (see R/startup.R)
+    first_draw <- TRUE
+
     output$plot <- renderPlot(
       {
+        if (first_draw) log_timing(paste(id, "chart: analysing"))
         if (inherits(chart(), "condition")) {
           validate(conditionMessage(chart()))
         }
+        if (first_draw) log_timing(paste(id, "chart: drawing"))
         draw_chart(fit_to_width(chart(), plot_width()))
+        if (first_draw) {
+          log_timing(paste(id, "chart: drawn"))
+          first_draw <<- FALSE
+        }
       },
       height = function() {
         if (is_narrow(plot_width())) 560 else 400

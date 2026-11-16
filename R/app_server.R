@@ -5,6 +5,8 @@ app_server <- function(
   end_date = Sys.Date()
 ) {
   function(input, output, session) {
+    log_timing("session started")
+
     # The analysis level labels depend on the country. Changing country starts
     # again at national level.
     observeEvent(input$country, ignoreInit = TRUE, {
