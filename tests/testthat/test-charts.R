@@ -1,5 +1,5 @@
 # The control limits below are regression values: they are what autospc
-# 0.2.0.9004 gives (with period_min = 24 for monthly data), and check that the
+# 0.2.0.9011 gives (with period_min = 24 for monthly data), and check that the
 # charts don't change unintentionally. If a new version of autospc changes them
 # on purpose, check the new charts and update the values.
 
@@ -61,9 +61,11 @@ test_that("Performance chart is correct for Chelsea and Westminster", {
     c(94.29129, 97.07303, 91.50955),
     tolerance = 1e-5
   )
+  # The limits restart after the 49-month gap in the 4-hour data (May 2019
+  # to May 2023), and are calculated from June 2023 to May 2025
   expect_equal(
     c(apr24$cl, apr24$ucl, apr24$lcl),
-    c(79.21800, 83.72751, 74.70848),
+    c(78.89418, 84.09390, 73.69447),
     tolerance = 1e-5
   )
 
@@ -223,14 +225,14 @@ test_that("No data in the period gives a message saying when the data ends", {
   )
 })
 
-test_that("Periods with no attendances are left out of the performance chart", {
+test_that("Periods with no attendances have no value on the performance chart", {
   # e.g. a type 1 breach reported with no type 1 attendances
   s <- rqm("All")
   s$Total_Att[s$Period == as.Date("2017-04-01")] <- 0
   s$Within_4h[s$Period == as.Date("2017-04-01")] <- -1
   chart <- chart_performance(s, "Provider", end_date = "2026-09-30")
-  expect_equal(nrow(chart_row(chart, "2017-04-01")), 0)
-  expect_equal(nrow(chart_row(chart, "2017-05-01")), 1)
+  expect_true(all(is.na(chart_row(chart, "2017-04-01")$y)))
+  expect_false(any(is.na(chart_row(chart, "2017-05-01")$y)))
 })
 
 test_that("Showing part of the dates leaves the analysis unchanged", {
@@ -259,10 +261,18 @@ test_that("The floating median is shown only with the end of the data", {
     built <- ggplot2::ggplot_build(chart)
     unlist(lapply(built$data, function(layer) as.character(layer$label)))
   }
-  expect_true(any(grepl("Median", labels(perf_chart("All")))))
+  # floating_median = "auto" shows a median only where the last 12 months
+  # break a rule, so lower them to make a shift
+  s <- rqm("All")
+  last_12 <- s$Period > as.Date("2025-09-01")
+  s$Within_4h[last_12] <- round(0.95 * s$Within_4h[last_12])
+  chart <- function(...) {
+    chart_performance(s, "Provider", end_date = "2026-09-30", ...)
+  }
+  expect_true(any(grepl("Median", labels(chart()))))
   expect_false(any(grepl(
     "Median",
-    labels(perf_chart("All", "2023-01-01", "2024-12-01"))
+    labels(chart(show_from = "2023-01-01", show_to = "2024-12-01"))
   )))
 })
 
@@ -339,11 +349,73 @@ test_that("Charts are laid out for narrow screens without changing the analysis"
 test_that("Limits are calculated from 24 months, or 21 weeks", {
   calculation_points <- function(chart) {
     d <- dplyr::distinct(as.data.frame(chart), x, .keep_all = TRUE)
-    sum(d$period_type == "calculation" & d$period_start == min(d$period_start))
+    # Months in a long gap belong to no period
+    first <- min(d$period_start, na.rm = TRUE)
+    sum(d$period_type %in% "calculation" & d$period_start %in% first)
   }
   monthly <- chart_performance(rqm("All"), "Provider")
   expect_equal(calculation_points(monthly), 24)
   s <- make_series(ae_data_test, "Regional", "S08000031", weekly = TRUE)
   weekly <- chart_performance(s, "Regional", weekly = TRUE, x_title = "Week")
   expect_equal(calculation_points(weekly), 21)
+})
+
+test_that("Months with no data break the line", {
+  gap <- as.Date(c("2024-03-01", "2024-04-01"))
+  with_gap <- ae_data_test |>
+    filter(!(Prov_Code == "RQM" & as.Date(Period) %in% gap))
+  s <- make_series(with_gap, "Provider", "RQM")
+
+  for (chart in list(
+    chart_performance(s, "Provider", end_date = "2026-09-30"),
+    chart_volume(s, "Provider", volume = "Attendances", end_date = "2026-09-30")
+  )) {
+    # The missing months are in the chart, with no value
+    d <- as.data.frame(chart)
+    expect_true(all(gap %in% d$x))
+    expect_true(all(is.na(d$y[d$x %in% gap])))
+  }
+})
+
+test_that("Volume charts start at the first count above zero", {
+  # as though RQM reported no type 1 attendances until July 2017, and none in
+  # April 2024
+  s <- rqm("Typ1")
+  s$Total_Att[s$Period < as.Date("2017-07-01")] <- 0
+  s$Total_Att[s$Period == as.Date("2024-04-01")] <- 0
+  chart <- chart_volume(
+    s,
+    "Provider",
+    "Typ1",
+    volume = "Attendances",
+    end_date = "2026-09-30"
+  )
+  d <- as.data.frame(chart)
+
+  expect_equal(min(d$x), as.Date("2017-07-01"))
+  # The first limits are calculated from the first month with a count
+  expect_equal(d$period_type[d$x == as.Date("2017-07-01")], "calculation")
+  # A zero after the first count stays in the chart
+  expect_equal(d$y[d$x == as.Date("2024-04-01")], 0)
+})
+
+
+test_that("The analysis restarts after a long gap in the data", {
+  # Chelsea and Westminster reported no 4-hour data from May 2019 to May 2023
+  d <- dplyr::distinct(as.data.frame(perf_chart("All")), x, .keep_all = TRUE)
+  gap <- d$x >= as.Date("2019-05-01") & d$x <= as.Date("2023-05-01")
+  expect_equal(sum(gap), 49)
+
+  # No limits are carried across the gap
+  expect_true(all(is.na(d$cl[gap])))
+
+  # The algorithm restarts at the first month after it, with a new
+  # calculation period
+  expect_equal(d$x[d$restart %in% TRUE], as.Date("2023-06-01"))
+  jun23 <- d[d$x == as.Date("2023-06-01"), ]
+  expect_equal(jun23$period_type, "calculation")
+  expect_false(isTRUE(all.equal(
+    jun23$cl,
+    d$cl[d$x == as.Date("2019-04-01")]
+  )))
 })
