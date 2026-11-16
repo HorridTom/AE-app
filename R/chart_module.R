@@ -22,12 +22,26 @@ chart_server <- function(id, chart, filename, caption, height = 6) {
       session$clientData[[paste0("output_", session$ns("plot"), "_width")]]
     }
 
+    # Log the times of the session's first chart (see R/startup.R). A chart
+    # can be tried more than once before it is drawn (e.g. the volume charts
+    # wait for the first flush), so each step is logged only the first time.
+    logged <- character()
+    log_once <- function(step) {
+      if (!step %in% logged) {
+        log_timing(paste(id, "chart:", step))
+        logged <<- c(logged, step)
+      }
+    }
+
     output$plot <- renderPlot(
       {
+        log_once("analysing")
         if (inherits(chart(), "condition")) {
           validate(conditionMessage(chart()))
         }
+        log_once("drawing")
         draw_chart(fit_to_width(chart(), plot_width()))
+        log_once("drawn")
       },
       height = function() {
         if (is_narrow(plot_width())) 560 else 400

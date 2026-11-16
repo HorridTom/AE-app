@@ -143,3 +143,21 @@ test_that("Download file names use the dates shown", {
     expect_equal(shown_dates(), as.Date(c("2017-01-01", "2017-06-30")))
   })
 })
+
+test_that("The volume charts wait until the performance chart is sent", {
+  testServer(server, {
+    # Shiny sends a flush's outputs together, so the attendance and admission
+    # charts are left to the next flush
+    expect_false(isolate(volume_ready()))
+    set_inputs(
+      session,
+      country = "England",
+      level = "National",
+      t1_only_checkbox = FALSE,
+      still_reporting_checkbox = TRUE,
+      weekly_checkbox = FALSE,
+      dates = as.Date(c("2015-07-01", "2026-11-02"))
+    )
+    expect_true(isolate(volume_ready()))
+  })
+})
