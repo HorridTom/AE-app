@@ -136,6 +136,18 @@ app_server <- function(
       ))
     }
 
+    # Shiny sends all the outputs of a flush together, so a new session would
+    # see no chart until all three are drawn. The attendance and admission
+    # charts wait for the first flush, so the performance chart is shown
+    # first.
+    volume_ready <- reactiveVal(FALSE)
+    session$onFlushed(function() volume_ready(TRUE), once = TRUE)
+
+    attendances_chart <- cached_chart(
+      "attendances",
+      chart_volume,
+      volume = "Attendances"
+    )
     admissions_chart <- cached_chart(
       "admissions",
       chart_volume,
@@ -151,14 +163,17 @@ app_server <- function(
     )
     chart_server(
       "attendances",
-      cached_chart("attendances", chart_volume, volume = "Attendances"),
+      reactive({
+        req(volume_ready())
+        attendances_chart()
+      }),
       file_name("AttendPlot"),
       caption("U'")
     )
     chart_server(
       "admissions",
       reactive({
-        req(selection()$country == "England")
+        req(volume_ready(), selection()$country == "England")
         admissions_chart()
       }),
       file_name("AdmissPlot"),
