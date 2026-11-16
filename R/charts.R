@@ -133,6 +133,15 @@ chart_volume <- function(
   # data have been apportioned to months (Scotland), and in a few source
   # rows; round them, as autospc would otherwise do with a warning.
   series$total <- round(series[[total_col]])
+
+  # A count of zero before the first count above zero means the count isn't
+  # reported yet, rather than none: e.g. type 1 attendances before a merger
+  # brought in a type 1 department, or admissions before they were recorded.
+  # So the chart starts at the first period with a count above zero, as the
+  # performance chart starts at its first value. Zeros after that are kept.
+  first_count <- which(series$total > 0)[1]
+  series <- series[first_count:nrow(series), ]
+
   window <- display_window(
     series$Period[!is.na(series$total)],
     show_from,

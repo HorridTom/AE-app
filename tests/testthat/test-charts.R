@@ -1,5 +1,5 @@
 # The control limits below are regression values: they are what autospc
-# 0.2.0.9009 gives (with period_min = 24 for monthly data), and check that the
+# 0.2.0.9011 gives (with period_min = 24 for monthly data), and check that the
 # charts don't change unintentionally. If a new version of autospc changes them
 # on purpose, check the new charts and update the values.
 
@@ -376,6 +376,29 @@ test_that("Months with no data break the line", {
     expect_true(all(is.na(d$y[d$x %in% gap])))
   }
 })
+
+test_that("Volume charts start at the first count above zero", {
+  # as though RQM reported no type 1 attendances until July 2017, and none in
+  # April 2024
+  s <- rqm("Typ1")
+  s$Total_Att[s$Period < as.Date("2017-07-01")] <- 0
+  s$Total_Att[s$Period == as.Date("2024-04-01")] <- 0
+  chart <- chart_volume(
+    s,
+    "Provider",
+    "Typ1",
+    volume = "Attendances",
+    end_date = "2026-09-30"
+  )
+  d <- as.data.frame(chart)
+
+  expect_equal(min(d$x), as.Date("2017-07-01"))
+  # The first limits are calculated from the first month with a count
+  expect_equal(d$period_type[d$x == as.Date("2017-07-01")], "calculation")
+  # A zero after the first count stays in the chart
+  expect_equal(d$y[d$x == as.Date("2024-04-01")], 0)
+})
+
 
 test_that("The analysis restarts after a long gap in the data", {
   # Chelsea and Westminster reported no 4-hour data from May 2019 to May 2023
