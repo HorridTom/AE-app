@@ -33,8 +33,10 @@ warm_up_on_first_request <- function(ui, ae_data) {
   }
 }
 
-# Set when a session starts, which stops the warm-up (see warm_up())
+# The steps of the warm-up done so far, and whether a session has started,
+# which stops it (see warm_up())
 warm_up_state <- new.env()
+warm_up_state$done <- character()
 warm_up_state$stop <- FALSE
 
 stop_warm_up <- function() {
@@ -43,10 +45,10 @@ stop_warm_up <- function() {
 
 # Do in advance what is slow the first time it is done in a new R process:
 # loading the packages the charts need, and the first run of the code that
-# makes a series, analyses it and draws the chart (R loads and compiles code
-# as it is first used). Together these are about half the time of the first
-# chart in a new process. It uses one provider's series, which is quick to
-# analyse.
+# makes a series and analyses it (R loads and compiles code as it is first
+# used). It uses one provider's series, which is quick to analyse. Drawing is
+# left out: on shinyapps.io it takes nearly 2 seconds, longer than the
+# browser takes to connect, so it held up the visitor's session.
 #
 # The steps run one at a time, each scheduled after the last, so that a
 # browser connecting can start its session in between (R does one thing at a
@@ -66,16 +68,7 @@ warm_up <- function(ae_data, code = "RQM") {
       env$series <- make_series(ae_data, "Provider", code, "All")
     },
     "chart analysed" = function() {
-      env$chart <- chart_performance(env$series, "Provider", "All")
-    },
-    "chart drawn" = function() {
-      file <- tempfile(fileext = ".png")
-      grDevices::png(file, width = 1348, height = 800, res = 144)
-      on.exit({
-        grDevices::dev.off()
-        unlink(file)
-      })
-      draw_chart(fit_to_width(env$chart, 674))
+      chart_performance(env$series, "Provider", "All")
     }
   )
 
@@ -90,6 +83,7 @@ warm_up <- function(ae_data, code = "RQM") {
     ok <- tryCatch(
       {
         steps[[i]]()
+        warm_up_state$done <- c(warm_up_state$done, names(steps)[i])
         log_timing(paste("warm-up:", names(steps)[i]))
         TRUE
       },
